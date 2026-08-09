@@ -78,15 +78,77 @@ class SiteViewTests(AuthenticatedTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Site.objects.filter(name="S1").exists())
 
-    def test_site_pipeline_assignment_form(self):
+    def test_site_pipeline_assignment_form_local(self):
         site = Site.objects.create(name="S1", lat=0, lon=0, timezone="UTC")
         pipeline = Pipeline.objects.create(name="P1")
         response = self.client.post(
             reverse("site_detail", args=["S1"]),
-            {"pipeline": pipeline.pk, "input_type": "local", "input_config": "{}", "output_type": "local", "output_config": "{}"},
+            {
+                "pipeline": pipeline.pk,
+                "input_type": "local",
+                "input_path": "/data/raw",
+                "output_type": "local",
+                "output_path": "/data/reduced",
+            },
         )
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(SitePipeline.objects.filter(site=site, pipeline=pipeline).exists())
+        assignment = SitePipeline.objects.get(site=site, pipeline=pipeline)
+        self.assertEqual(assignment.input_config, {"path": "/data/raw"})
+        self.assertEqual(assignment.output_config, {"path": "/data/reduced"})
+
+    def test_site_pipeline_assignment_form_archive(self):
+        site = Site.objects.create(name="S1", lat=0, lon=0, timezone="UTC")
+        pipeline = Pipeline.objects.create(name="P1")
+        response = self.client.post(
+            reverse("site_detail", args=["S1"]),
+            {
+                "pipeline": pipeline.pk,
+                "input_type": "archive",
+                "input_url": "http://archive.example.org",
+                "input_token": "secret",
+                "output_type": "archive",
+                "output_url": "http://archive.example.org",
+                "output_token": "secret",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        assignment = SitePipeline.objects.get(site=site, pipeline=pipeline)
+        self.assertEqual(
+            assignment.input_config,
+            {"class": "pyobs.robotic.utils.archive.PyobsArchive", "url": "http://archive.example.org", "token": "secret"},
+        )
+
+    def test_site_pipeline_assignment_form_missing_required_field(self):
+        site = Site.objects.create(name="S1", lat=0, lon=0, timezone="UTC")
+        pipeline = Pipeline.objects.create(name="P1")
+        response = self.client.post(
+            reverse("site_detail", args=["S1"]),
+            {"pipeline": pipeline.pk, "input_type": "local", "output_type": "local", "output_path": "/data/reduced"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Required for a local directory")
+        self.assertFalse(SitePipeline.objects.filter(site=site).exists())
+
+    def test_site_pipeline_assignment_updates_existing(self):
+        site = Site.objects.create(name="S1", lat=0, lon=0, timezone="UTC")
+        pipeline = Pipeline.objects.create(name="P1")
+        SitePipeline.objects.create(
+            site=site, pipeline=pipeline, input_type="local", input_config={"path": "/old"},
+            output_type="local", output_config={"path": "/old-out"},
+        )
+        self.client.post(
+            reverse("site_detail", args=["S1"]),
+            {
+                "pipeline": pipeline.pk,
+                "input_type": "local",
+                "input_path": "/new",
+                "output_type": "local",
+                "output_path": "/new-out",
+            },
+        )
+        self.assertEqual(SitePipeline.objects.filter(site=site).count(), 1)
+        assignment = SitePipeline.objects.get(site=site)
+        self.assertEqual(assignment.input_config, {"path": "/new"})
 
 
 class PipelineBuilderViewTests(AuthenticatedTestCase):

@@ -125,14 +125,12 @@ def site_detail(request, name: str):
     assignment = SitePipeline.objects.filter(site=site).first()
 
     if request.method == "POST":
-        form = SitePipelineForm(request.POST, instance=assignment)
+        form = SitePipelineForm(request.POST)
         if form.is_valid():
-            sp = form.save(commit=False)
-            sp.site = site
-            sp.save()
+            form.apply_to(site)
             return redirect("site_detail", name=site.name)
     else:
-        form = SitePipelineForm(instance=assignment)
+        form = SitePipelineForm.from_instance(assignment)
 
     periods = site.periods.all()[:20]
     return render(

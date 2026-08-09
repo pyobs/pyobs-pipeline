@@ -40,18 +40,49 @@
     <div class="card mt-4">
       <div class="card-header">Pipeline assignment</div>
       <div class="card-body">
-        <form method="post">
+        <form method="post" id="pipeline-assignment-form">
           {% csrf_token %}
-          {% for field in form %}
           <div class="mb-3">
-            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% for error in field.errors %}
-            <div class="text-danger small">{{ error }}</div>
-            {% endfor %}
+            <label class="form-label" for="{{ form.pipeline.id_for_label }}">{{ form.pipeline.label }}</label>
+            {{ form.pipeline }}
+            {% for error in form.pipeline.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
           </div>
-          {% endfor %}
-          <button type="submit" class="btn btn-primary btn-sm">Save</button>
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.input_type.id_for_label }}">Input type</label>
+            {{ form.input_type }}
+          </div>
+          <div class="mb-2 io-field" data-io="input" data-type="local">
+            <label class="form-label small" for="{{ form.input_path.id_for_label }}">Local path</label>
+            {{ form.input_path }}
+            {% for error in form.input_path.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-2 io-field" data-io="input" data-type="archive">
+            <label class="form-label small" for="{{ form.input_url.id_for_label }}">Archive URL</label>
+            {{ form.input_url }}
+            {% for error in form.input_url.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            <label class="form-label small mt-2" for="{{ form.input_token.id_for_label }}">Archive token</label>
+            {{ form.input_token }}
+          </div>
+
+          <div class="mb-3 mt-4">
+            <label class="form-label" for="{{ form.output_type.id_for_label }}">Output type</label>
+            {{ form.output_type }}
+          </div>
+          <div class="mb-2 io-field" data-io="output" data-type="local">
+            <label class="form-label small" for="{{ form.output_path.id_for_label }}">Local path</label>
+            {{ form.output_path }}
+            {% for error in form.output_path.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-2 io-field" data-io="output" data-type="archive">
+            <label class="form-label small" for="{{ form.output_url.id_for_label }}">Archive URL</label>
+            {{ form.output_url }}
+            {% for error in form.output_url.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            <label class="form-label small mt-2" for="{{ form.output_token.id_for_label }}">Archive token</label>
+            {{ form.output_token }}
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-sm mt-2">Save</button>
         </form>
       </div>
     </div>
@@ -80,4 +111,25 @@
     <p class="text-muted small mt-2">Click a date for start/stop/reset/restart controls.</p>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const form = document.getElementById("pipeline-assignment-form");
+  if (!form) return;
+
+  function sync(io) {
+    const type = form.querySelector(`[name="${io}_type"]`).value;
+    form.querySelectorAll(`.io-field[data-io="${io}"]`).forEach((el) => {
+      el.style.display = el.dataset.type === type ? "" : "none";
+    });
+  }
+
+  ["input", "output"].forEach((io) => {
+    sync(io);
+    form.querySelector(`[name="${io}_type"]`).addEventListener("change", () => sync(io));
+  });
+})();
+</script>
 {% endblock %}
