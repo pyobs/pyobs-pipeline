@@ -25,7 +25,7 @@ dependencies = [
 # For local tandem development against an in-progress pyobs-core change, temporarily
 # point this at { path = "../pyobs-core", editable = true } instead -- just don't
 # commit that swap.
-pyobs-core = { git = "https://github.com/pyobs/pyobs-core.git", rev = "642bc906471298df8f98e490960578d9ffb93805" }
+pyobs-core = { git = "https://github.com/pyobs/pyobs-core.git", rev = "f5e1c158" }
 
 [build-system]
 requires = ["hatchling"]

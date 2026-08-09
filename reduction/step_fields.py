@@ -1,28 +1,50 @@
 """Introspects pyobs-core processor classes to generate pipeline-builder form fields."""
 
+import functools
+import importlib
 import inspect
+import pkgutil
 import types
 import typing
 from typing import Any
 
 from pyobs.object import get_class_from_string
 
-# Curated list of commonly used processors for the "Add step" dropdown. Not the only
-# valid values for PipelineStep.step_class -- any importable dotted path works, this is
-# just what's offered as a shortcut. See "custom step_class" entry in the template.
-KNOWN_STEP_TEMPLATES = [
-    "pyobs.images.processors.calibration.Calibration",
-    "pyobs.images.processors.detection.SepSourceDetection",
-    "pyobs.images.processors.detection.DaophotSourceDetection",
-    "pyobs.images.processors.detection.SimpleDisk",
-    "pyobs.images.processors.astrometry.AstrometryDotNet",
-    "pyobs.images.processors.image.Flip",
-    "pyobs.images.processors.image.SoftBin",
-    "pyobs.images.processors.image.AddFitsHeaders",
-    "pyobs.images.processors.image.SaveImage",
-    "pyobs.images.processors.image.Smooth",
-    "pyobs.images.processors.image.Grayscale",
-]
+
+@functools.lru_cache(maxsize=1)
+def discover_step_templates() -> list[str]:
+    """All concrete (non-abstract) pyobs.images.ImageProcessor subclasses under
+    pyobs.images.processors, for the "Add step" dropdown. Not the only valid values for
+    PipelineStep.step_class -- any importable dotted path works (see "custom step_class"
+    in the template), this just saves hunting for one.
+
+    Walks the package tree rather than hardcoding a list, so it stays in sync with
+    pyobs-core as processors are added/removed. Each processors subpackage's __init__.py
+    already re-exports its concrete classes with a matching __module__ override (e.g.
+    Flip.__module__ == "pyobs.images.processors.image", which really does import Flip --
+    unlike pyobs.utils.archive's __module__ trick, see reduction/tasks.py's note), so no
+    separate registry is needed in pyobs-core for this.
+    """
+    import pyobs.images.processors as processors_pkg
+    from pyobs.images.processor import ImageProcessor
+
+    found: set[str] = set()
+    for _, name, _ in pkgutil.walk_packages(processors_pkg.__path__, processors_pkg.__name__ + "."):
+        if name.rsplit(".", 1)[-1].startswith("_"):
+            continue
+        try:
+            module = importlib.import_module(name)
+        except ImportError:
+            continue  # an optional pyobs-core extra isn't installed -- skip, not fatal
+        for obj in vars(module).values():
+            if (
+                inspect.isclass(obj)
+                and issubclass(obj, ImageProcessor)
+                and obj is not ImageProcessor
+                and not inspect.isabstract(obj)
+            ):
+                found.add(f"{obj.__module__}.{obj.__name__}")
+    return sorted(found)
 
 
 def _unwrap_optional(annotation: Any) -> Any:

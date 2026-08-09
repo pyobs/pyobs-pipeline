@@ -11,7 +11,7 @@ from pyobs.object import get_class_from_string
 from reduction.forms import PipelineForm, SiteForm, SitePipelineForm
 from reduction.models import Pipeline, PipelineStep, ReductionPeriod, Site, SitePipeline
 from reduction.period_actions import PeriodActionError, reset_period, restart_period, start_period, stop_period
-from reduction.step_fields import KNOWN_STEP_TEMPLATES, get_step_fields
+from reduction.step_fields import discover_step_templates, get_step_fields
 from reduction.turnover import get_next_turnover
 
 
@@ -245,7 +245,7 @@ def pipeline_detail(request, name: str):
         {
             "pipeline": pipeline,
             "step_views": _build_step_views(pipeline),
-            "known_templates": KNOWN_STEP_TEMPLATES,
+            "known_templates": discover_step_templates(),
         },
     )
 
@@ -264,7 +264,7 @@ def pipeline_step_add(request, name: str):
             {
                 "pipeline": pipeline,
                 "step_views": _build_step_views(pipeline),
-                "known_templates": KNOWN_STEP_TEMPLATES,
+                "known_templates": discover_step_templates(),
                 "add_step_error": f"Could not import '{step_class}': {exc}",
             },
             status=400,
@@ -301,7 +301,7 @@ def pipeline_step_config(request, name: str, step_id: int):
         {
             "pipeline": pipeline,
             "step_views": step_views,
-            "known_templates": KNOWN_STEP_TEMPLATES,
+            "known_templates": discover_step_templates(),
             "config_errors": errors,
         },
         status=400,
