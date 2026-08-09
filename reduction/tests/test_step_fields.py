@@ -30,3 +30,13 @@ class DiscoverStepTemplatesTests(SimpleTestCase):
             with self.subTest(path=path):
                 fields = get_step_fields(path)
                 self.assertIsInstance(fields, list)
+
+
+class GetStepFieldsTests(SimpleTestCase):
+    def test_archive_field_is_hidden(self):
+        """archive is auto-filled from the site's own config (see pyobs-core's
+        PipelineMixin), not something an operator sets per step -- see
+        reduction/tasks.py's build_reduction_config, which never writes an "archive" key
+        into a step's config."""
+        fields = get_step_fields("pyobs.images.processors.calibration.Calibration")
+        self.assertNotIn("archive", [f["name"] for f in fields])

@@ -77,8 +77,7 @@ def get_step_fields(step_class_path: str) -> list[dict[str, Any]]:
 
     Example:
         get_step_fields("pyobs.images.processors.calibration.Calibration")
-        -> [{"name": "archive", "type": "json", "default": None, "label": "Archive"},
-            {"name": "max_cache_size", "type": "integer", "default": 20, "label": "Max Cache Size"},
+        -> [{"name": "max_cache_size", "type": "integer", "default": 20, "label": "Max Cache Size"},
             {"name": "require_bias", "type": "boolean", "default": True, "label": "Require Bias"},
             ...]
     """
@@ -91,6 +90,13 @@ def get_step_fields(step_class_path: str) -> list[dict[str, Any]]:
         if name in ("self", "kwargs", "args"):
             continue
         if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            continue
+        if name == "archive":
+            # Not user-configurable here -- pyobs-core's Pipeline auto-fills a step's
+            # archive from the site's own configured archive when the step doesn't set
+            # one itself (see reduction/tasks.py's build_reduction_config, which never
+            # writes an "archive" key into a step's config). Hide it rather than let an
+            # operator redundantly (or inconsistently) re-specify it per step.
             continue
         default = param.default if param.default is not inspect.Parameter.empty else None
         fields.append(
