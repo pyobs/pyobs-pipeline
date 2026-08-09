@@ -1,4 +1,5 @@
 import json
+import os
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
@@ -11,6 +12,7 @@ from reduction.forms import PipelineForm, SiteForm, SitePipelineForm
 from reduction.models import Pipeline, PipelineStep, ReductionPeriod, Site, SitePipeline
 from reduction.period_actions import PeriodActionError, reset_period, restart_period, start_period, stop_period
 from reduction.step_fields import KNOWN_STEP_TEMPLATES, get_step_fields
+from reduction.turnover import get_next_turnover
 
 
 def login_view(request):
@@ -40,8 +42,44 @@ def logout_view(request):
     return redirect("/login/")
 
 
+def _io_status(io_type: str, io_config: dict) -> dict:
+    """Cheap, synchronous status for a dashboard card -- a real network round-trip to an
+    archive would slow the dashboard down for every load, so this only checks what's
+    free: a local path's existence, or that an archive config has a URL set at all."""
+    if io_type == "local":
+        path = io_config.get("path", "")
+        return {"label": "Local directory", "detail": path, "ok": bool(path) and os.path.isdir(path)}
+    url = io_config.get("url", "")
+    return {"label": "PyobsArchive", "detail": url, "ok": bool(url)}
+
+
 def dashboard(request):
-    return render(request, "reduction/dashboard.html")
+    site_cards = []
+    for site in Site.objects.all().order_by("name"):
+        assignment = getattr(site, "pipeline_assignment", None)
+        try:
+            next_turnover = get_next_turnover(site)
+        except Exception:
+            next_turnover = None
+        site_cards.append(
+            {
+                "site": site,
+                "last_period": site.periods.order_by("-date").first(),
+                "next_turnover": next_turnover,
+                "assignment": assignment,
+                "input_status": _io_status(assignment.input_type, assignment.input_config) if assignment else None,
+                "output_status": _io_status(assignment.output_type, assignment.output_config)
+                if assignment
+                else None,
+            }
+        )
+
+    recent_periods = ReductionPeriod.objects.select_related("site").all()[:10]
+    return render(
+        request,
+        "reduction/dashboard.html",
+        {"site_cards": site_cards, "recent_periods": recent_periods},
+    )
 
 
 # ── Sites ───────────────────────────────────────────────────────────────────

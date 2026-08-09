@@ -2,5 +2,97 @@
 {% block title %}Dashboard — pyobs Pipeline{% endblock %}
 {% block content %}
 <h4 class="mb-3">Dashboard</h4>
-<p class="text-muted">Placeholder — site status cards and recent periods land in a later step.</p>
+
+<div class="row g-3 mb-4">
+  {% for card in site_cards %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <a href="{% url 'site_detail' card.site.name %}" class="text-decoration-none">{{ card.site.name }}</a>
+        {% if card.site.enabled %}
+        <span class="badge text-bg-success">enabled</span>
+        {% else %}
+        <span class="badge text-bg-secondary">disabled</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <dl class="row mb-2">
+          <dt class="col-5">Last period</dt>
+          <dd class="col-7">
+            {% if card.last_period %}
+            <a href="{% url 'period_detail' card.last_period.pk %}">{{ card.last_period.date }}</a>
+            {% with period=card.last_period %}{% include "reduction/_status_badge.html" %}{% endwith %}
+            {% else %}
+            <span class="text-muted">none yet</span>
+            {% endif %}
+          </dd>
+          <dt class="col-5">Next trigger</dt>
+          <dd class="col-7">
+            {% if card.next_turnover %}{{ card.next_turnover }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </dd>
+        </dl>
+
+        {% if card.assignment %}
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr>
+              <th class="text-muted fw-normal" style="width:40%">Input</th>
+              <td>
+                {{ card.input_status.label }}
+                {% if card.input_status.ok %}
+                <i class="bi bi-check-circle-fill text-success" title="{{ card.input_status.detail }}"></i>
+                {% else %}
+                <i class="bi bi-exclamation-triangle-fill text-warning" title="not found / not configured"></i>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted fw-normal">Output</th>
+              <td>
+                {{ card.output_status.label }}
+                {% if card.output_status.ok %}
+                <i class="bi bi-check-circle-fill text-success" title="{{ card.output_status.detail }}"></i>
+                {% else %}
+                <i class="bi bi-exclamation-triangle-fill text-warning" title="not found / not configured"></i>
+                {% endif %}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted small mb-0">No pipeline assigned.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <p class="text-muted">No sites configured yet. <a href="{% url 'site_add' %}">Add one</a>.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Recent reduction periods
+    <a href="{% url 'period_list' %}" class="small">View all</a>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Site</th><th>Date</th><th>Status</th><th>Finished</th></tr></thead>
+      <tbody>
+        {% for period in recent_periods %}
+        <tr>
+          <td><a href="{% url 'site_detail' period.site.name %}">{{ period.site.name }}</a></td>
+          <td><a href="{% url 'period_detail' period.pk %}">{{ period.date }}</a></td>
+          <td>{% include "reduction/_status_badge.html" %}</td>
+          <td>{{ period.finished_at|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-muted p-3">No reduction periods yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}
