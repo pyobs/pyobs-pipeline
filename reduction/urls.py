@@ -18,4 +18,10 @@ urlpatterns = [
     path("pipelines/<str:name>/steps/reorder/", views.pipeline_step_reorder, name="pipeline_step_reorder"),
     path("pipelines/<str:name>/steps/<int:step_id>/config/", views.pipeline_step_config, name="pipeline_step_config"),
     path("pipelines/<str:name>/steps/<int:step_id>/delete/", views.pipeline_step_delete, name="pipeline_step_delete"),
+    path("periods/", views.period_list, name="period_list"),
+    path("periods/<int:pk>/", views.period_detail, name="period_detail"),
+    path("periods/<int:pk>/start/", views.period_start, name="period_start"),
+    path("periods/<int:pk>/stop/", views.period_stop, name="period_stop"),
+    path("periods/<int:pk>/reset/", views.period_reset, name="period_reset"),
+    path("periods/<int:pk>/restart/", views.period_restart, name="period_restart"),
 ]

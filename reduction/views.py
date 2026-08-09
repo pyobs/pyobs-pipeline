@@ -8,7 +8,8 @@ from django.views.decorators.http import require_POST
 
 from pyobs.object import get_class_from_string
 from reduction.forms import PipelineForm, SiteForm, SitePipelineForm
-from reduction.models import Pipeline, PipelineStep, Site, SitePipeline
+from reduction.models import Pipeline, PipelineStep, ReductionPeriod, Site, SitePipeline
+from reduction.period_actions import PeriodActionError, reset_period, restart_period, start_period, stop_period
 from reduction.step_fields import KNOWN_STEP_TEMPLATES, get_step_fields
 
 
@@ -298,3 +299,77 @@ def pipeline_step_reorder(request, name: str):
             step.order = order
             step.save(update_fields=["order"])
     return JsonResponse({"ok": True})
+
+
+# ── Reduction periods ─────────────────────────────────────────────────────────
+
+def period_list(request):
+    periods = ReductionPeriod.objects.select_related("site").all()
+    site_filter = request.GET.get("site", "")
+    status_filter = request.GET.get("status", "")
+    if site_filter:
+        periods = periods.filter(site__name=site_filter)
+    if status_filter:
+        periods = periods.filter(status=status_filter)
+    return render(
+        request,
+        "reduction/period_list.html",
+        {
+            "periods": periods[:200],
+            "sites": Site.objects.all().order_by("name"),
+            "statuses": ReductionPeriod.STATUS_CHOICES,
+            "site_filter": site_filter,
+            "status_filter": status_filter,
+        },
+    )
+
+
+def _period_context(period: ReductionPeriod) -> dict:
+    active_conflict = (
+        ReductionPeriod.objects.filter(site=period.site, date=period.date, status__in=("QUEUED", "RUNNING"))
+        .exclude(pk=period.pk)
+        .exists()
+    )
+    return {
+        "period": period,
+        "can_start": period.status in ("PENDING", "FAILED", "CANCELLED") and not active_conflict,
+        "can_stop": period.status == "RUNNING",
+        "can_reset": period.status in ("QUEUED", "RUNNING"),
+    }
+
+
+def period_detail(request, pk: int):
+    period = get_object_or_404(ReductionPeriod, pk=pk)
+    return render(request, "reduction/period_detail.html", _period_context(period))
+
+
+def _handle_period_action(request, pk: int, action_fn):
+    period = get_object_or_404(ReductionPeriod, pk=pk)
+    try:
+        result = action_fn(period)
+    except PeriodActionError as exc:
+        ctx = _period_context(period)
+        ctx["action_error"] = str(exc)
+        return render(request, "reduction/period_detail.html", ctx, status=400)
+    target_pk = result.pk if isinstance(result, ReductionPeriod) else period.pk
+    return redirect("period_detail", pk=target_pk)
+
+
+@require_POST
+def period_start(request, pk: int):
+    return _handle_period_action(request, pk, start_period)
+
+
+@require_POST
+def period_stop(request, pk: int):
+    return _handle_period_action(request, pk, stop_period)
+
+
+@require_POST
+def period_reset(request, pk: int):
+    return _handle_period_action(request, pk, reset_period)
+
+
+@require_POST
+def period_restart(request, pk: int):
+    return _handle_period_action(request, pk, restart_period)

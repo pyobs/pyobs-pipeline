@@ -1,0 +1,7 @@
+{% if period.status == "PENDING" %}<span class="badge text-bg-secondary">Pending</span>
+{% elif period.status == "QUEUED" %}<span class="badge text-bg-info">Queued</span>
+{% elif period.status == "RUNNING" %}<span class="badge text-bg-primary">Running</span>
+{% elif period.status == "COMPLETED" %}<span class="badge text-bg-success">Completed</span>
+{% elif period.status == "FAILED" %}<span class="badge text-bg-danger">Failed</span>
+{% elif period.status == "CANCELLED" %}<span class="badge text-bg-dark">Cancelled</span>
+{% endif %}
