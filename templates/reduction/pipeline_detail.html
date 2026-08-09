@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ pipeline.name }} — pyobs Pipeline{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">{{ pipeline.name }}</h4>
+    {% if pipeline.description %}<div class="text-muted small">{{ pipeline.description }}</div>{% endif %}
+  </div>
+  <div>
+    <a href="{% url 'pipeline_edit' pipeline.name %}" class="btn btn-sm btn-outline-secondary">Edit settings</a>
+    <a href="{% url 'pipeline_delete' pipeline.name %}" class="btn btn-sm btn-outline-danger">Delete</a>
+  </div>
+</div>
+
+<div id="step-list" class="mb-4">
+  {% for sv in step_views %}
+  <div class="card mb-2 step-card" draggable="true" data-step-id="{{ sv.step.pk }}">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-grip-vertical drag-handle" style="cursor:grab" title="Drag to reorder"></i>
+      <span class="badge text-bg-secondary">{{ forloop.counter }}</span>
+      <code class="flex-grow-1">{{ sv.step.step_class }}</code>
+      <form method="post" action="{% url 'pipeline_step_delete' pipeline.name sv.step.pk %}" class="mb-0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove step">
+          <i class="bi bi-trash"></i>
+        </button>
+      </form>
+    </div>
+    <div class="card-body">
+      {% if sv.error %}
+      <div class="alert alert-warning py-2 mb-2">
+        <i class="bi bi-exclamation-triangle me-1"></i>Could not introspect this class: {{ sv.error }}
+      </div>
+      <pre class="mb-0">{{ sv.step.config }}</pre>
+      {% else %}
+      <form method="post" action="{% url 'pipeline_step_config' pipeline.name sv.step.pk %}" class="row g-2">
+        {% csrf_token %}
+        {% for field in sv.fields %}
+        <div class="col-12 col-md-6">
+          <label class="form-label small" for="step{{ sv.step.pk }}_{{ field.name }}">
+            {{ field.label }}{% if field.required %} <span class="text-danger">*</span>{% endif %}
+          </label>
+          {% if field.type == "boolean" %}
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="step{{ sv.step.pk }}_{{ field.name }}"
+                   name="field_{{ field.name }}" {% if field.value %}checked{% endif %}>
+          </div>
+          {% elif field.type == "integer" %}
+          <input type="number" step="1" class="form-control form-control-sm" id="step{{ sv.step.pk }}_{{ field.name }}"
+                 name="field_{{ field.name }}" value="{{ field.value|default_if_none:'' }}">
+          {% elif field.type == "number" %}
+          <input type="number" step="any" class="form-control form-control-sm" id="step{{ sv.step.pk }}_{{ field.name }}"
+                 name="field_{{ field.name }}" value="{{ field.value|default_if_none:'' }}">
+          {% elif field.type == "json" %}
+          <textarea class="form-control form-control-sm font-monospace" rows="2"
+                    id="step{{ sv.step.pk }}_{{ field.name }}" name="field_{{ field.name }}">{{ field.value|default_if_none:'' }}</textarea>
+          {% else %}
+          <input type="text" class="form-control form-control-sm" id="step{{ sv.step.pk }}_{{ field.name }}"
+                 name="field_{{ field.name }}" value="{{ field.value|default_if_none:'' }}">
+          {% endif %}
+        </div>
+        {% empty %}
+        <p class="text-muted small mb-0">No configurable parameters.</p>
+        {% endfor %}
+        <div class="col-12">
+          <button type="submit" class="btn btn-sm btn-primary">Save</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <p class="text-muted">No steps yet — add one below.</p>
+  {% endfor %}
+</div>
+
+{% if config_errors %}
+<div class="alert alert-danger py-2">
+  {% for error in config_errors %}<div>{{ error }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">Add step</div>
+  <div class="card-body">
+    {% if add_step_error %}
+    <div class="alert alert-danger py-2">{{ add_step_error }}</div>
+    {% endif %}
+    <form method="post" action="{% url 'pipeline_step_add' pipeline.name %}" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-12 col-md-5">
+        <label class="form-label small">Known processor</label>
+        <select name="step_class" class="form-select form-select-sm">
+          <option value="">— choose —</option>
+          {% for path in known_templates %}
+          <option value="{{ path }}">{{ path }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-5">
+        <label class="form-label small">or custom dotted class path</label>
+        <input type="text" name="custom_step_class" class="form-control form-control-sm font-monospace"
+               placeholder="pyobs.images.processors....">
+      </div>
+      <div class="col-12 col-md-2">
+        <button type="submit" class="btn btn-sm btn-primary w-100">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const list = document.getElementById("step-list");
+  let dragged = null;
+
+  list.addEventListener("dragstart", (e) => {
+    const card = e.target.closest(".step-card");
+    if (!card) return;
+    dragged = card;
+    e.dataTransfer.effectAllowed = "move";
+  });
+
+  list.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const target = e.target.closest(".step-card");
+    if (!target || target === dragged) return;
+    const rect = target.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height / 2;
+    list.insertBefore(dragged, before ? target : target.nextSibling);
+  });
+
+  list.addEventListener("dragend", () => {
+    if (!dragged) return;
+    dragged = null;
+    const order = Array.from(list.querySelectorAll(".step-card")).map(c => c.dataset.stepId);
+    fetch("{% url 'pipeline_step_reorder' pipeline.name %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": document.cookie.split("; ").find(c => c.startsWith("csrftoken=")).split("=")[1],
+      },
+      body: JSON.stringify({order: order}),
+    }).then(() => location.reload());
+  });
+})();
+</script>
+{% endblock %}

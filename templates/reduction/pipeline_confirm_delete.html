@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ pipeline.name }} — pyobs Pipeline{% endblock %}
+{% block content %}
+<h4 class="mb-3">Delete pipeline "{{ pipeline.name }}"?</h4>
+<p class="text-muted">This also deletes its steps and unassigns it from any sites.</p>
+<form method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger">Delete</button>
+  <a href="{% url 'pipeline_detail' pipeline.name %}" class="btn btn-outline-secondary">Cancel</a>
+</form>
+{% endblock %}

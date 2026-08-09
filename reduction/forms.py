@@ -1,6 +1,6 @@
 from django import forms
 
-from reduction.models import Site, SitePipeline
+from reduction.models import Pipeline, Site, SitePipeline
 
 
 class SiteForm(forms.ModelForm):
@@ -44,4 +44,18 @@ class SitePipelineForm(forms.ModelForm):
             "input_config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4}),
             "output_type": forms.Select(attrs={"class": "form-select"}),
             "output_config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4}),
+        }
+
+
+class PipelineForm(forms.ModelForm):
+    class Meta:
+        model = Pipeline
+        fields = ["name", "description", "period_config"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+            "period_config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4}),
+        }
+        help_texts = {
+            "period_config": "kwargs for the top-level reduction object, e.g. min_flats, filenames_calib, create_calibs, calib_science",
         }

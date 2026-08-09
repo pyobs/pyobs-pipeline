@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Pipelines — pyobs Pipeline{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Pipelines</h4>
+  <a href="{% url 'pipeline_add' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>New pipeline
+  </a>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Steps</th>
+        <th>Used by</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pipeline in pipelines %}
+      <tr>
+        <td><a href="{% url 'pipeline_detail' pipeline.name %}">{{ pipeline.name }}</a></td>
+        <td class="text-muted">{{ pipeline.description|default:"—" }}</td>
+        <td>{{ pipeline.steps.count }}</td>
+        <td>{{ pipeline.site_assignments.count }} site{{ pipeline.site_assignments.count|pluralize }}</td>
+        <td class="text-end">
+          <a href="{% url 'pipeline_edit' pipeline.name %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+          <a href="{% url 'pipeline_delete' pipeline.name %}" class="btn btn-sm btn-outline-danger">Delete</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-muted">No pipelines defined yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

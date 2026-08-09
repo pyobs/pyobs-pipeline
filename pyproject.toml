@@ -12,7 +12,7 @@ dependencies = [
     "celery>=5.4",
     "redis>=5.2",
     "astroplan>=0.10",
-    "pyobs-core",
+    "pyobs-core[full]",
 ]
 
 [tool.uv.sources]
