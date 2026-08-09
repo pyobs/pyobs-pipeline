@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ period.site.name }} {{ period.date }} — pyobs Pipeline{% endblock %}
 {% block content %}
+<div id="period-page" data-period-id="{{ period.pk }}" data-status="{{ period.status }}">
+
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">
     <a href="{% url 'site_detail' period.site.name %}">{{ period.site.name }}</a>
     &mdash; {{ period.date }}
-    {% include "reduction/_status_badge.html" %}
+    <span id="status-badge">{% include "reduction/_status_badge.html" %}</span>
   </h4>
   <div class="d-flex gap-2">
     <form method="post" action="{% url 'period_start' period.pk %}">
@@ -42,17 +44,69 @@
 <div class="card mb-4">
   <div class="card-body">
     <dl class="row mb-0">
-      <dt class="col-2">Started</dt><dd class="col-4">{{ period.started_at|default:"—" }}</dd>
-      <dt class="col-2">Finished</dt><dd class="col-4">{{ period.finished_at|default:"—" }}</dd>
+      <dt class="col-2">Started</dt><dd class="col-4" id="started-at">{{ period.started_at|default:"—" }}</dd>
+      <dt class="col-2">Finished</dt><dd class="col-4" id="finished-at">{{ period.finished_at|default:"—" }}</dd>
       <dt class="col-2">Task ID</dt><dd class="col-4"><code>{{ period.task_id|default:"—" }}</code></dd>
     </dl>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-header">Logs</div>
+  <div class="card-header d-flex align-items-center gap-2">
+    Logs
+    <span id="log-live-indicator" class="badge text-bg-primary" style="display:none">
+      <span class="spinner-grow spinner-grow-sm" style="width:.5rem;height:.5rem" aria-hidden="true"></span>
+      live
+    </span>
+  </div>
   <div class="card-body">
-    <pre class="mb-0" style="max-height:60vh;overflow-y:auto">{{ period.logs|default:"(no output yet)" }}</pre>
+    <pre id="log-output" class="mb-0" style="max-height:60vh;overflow-y:auto">{{ period.logs|default:"(no output yet)" }}</pre>
   </div>
 </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const page = document.getElementById("period-page");
+  const POLLING_STATUSES = ["QUEUED", "RUNNING"];
+  if (!POLLING_STATUSES.includes(page.dataset.status)) return;
+
+  const periodId = page.dataset.periodId;
+  const logOutput = document.getElementById("log-output");
+  const liveIndicator = document.getElementById("log-live-indicator");
+  liveIndicator.style.display = "inline-flex";
+
+  const statusUrl = `/periods/${periodId}/api/status/`;
+
+  async function poll() {
+    let data;
+    try {
+      const resp = await fetch(statusUrl);
+      data = await resp.json();
+    } catch (_) {
+      setTimeout(poll, 2000);
+      return;
+    }
+
+    const atBottom = logOutput.scrollTop + logOutput.clientHeight >= logOutput.scrollHeight - 10;
+    logOutput.textContent = data.logs || "(no output yet)";
+    if (atBottom) logOutput.scrollTop = logOutput.scrollHeight;
+
+    if (data.started_at) document.getElementById("started-at").textContent = data.started_at;
+    if (data.finished_at) document.getElementById("finished-at").textContent = data.finished_at;
+
+    if (!POLLING_STATUSES.includes(data.status)) {
+      // Terminal status reached -- reload for correct action buttons and final badge.
+      location.reload();
+      return;
+    }
+    setTimeout(poll, 2000);
+  }
+
+  setTimeout(poll, 2000);
+})();
+</script>
 {% endblock %}

@@ -373,3 +373,18 @@ def period_reset(request, pk: int):
 @require_POST
 def period_restart(request, pk: int):
     return _handle_period_action(request, pk, restart_period)
+
+
+def period_status_api(request, pk: int):
+    """Polled by the detail page's log viewer while a period is QUEUED/RUNNING --
+    logs live only in the DB (ReductionPeriod.logs), no file to tail."""
+    period = get_object_or_404(ReductionPeriod, pk=pk)
+    return JsonResponse(
+        {
+            "status": period.status,
+            "status_display": period.get_status_display(),
+            "logs": period.logs,
+            "started_at": period.started_at.isoformat() if period.started_at else None,
+            "finished_at": period.finished_at.isoformat() if period.finished_at else None,
+        }
+    )

@@ -24,4 +24,5 @@ urlpatterns = [
     path("periods/<int:pk>/stop/", views.period_stop, name="period_stop"),
     path("periods/<int:pk>/reset/", views.period_reset, name="period_reset"),
     path("periods/<int:pk>/restart/", views.period_restart, name="period_restart"),
+    path("periods/<int:pk>/api/status/", views.period_status_api, name="period_status_api"),
 ]
