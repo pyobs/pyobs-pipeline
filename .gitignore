@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+data/
+staticfiles/
+pyobs_pipeline/local_settings.py
+*.egg-info/
