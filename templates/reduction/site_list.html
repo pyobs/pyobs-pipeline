@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Sites — pyobs Pipeline{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Sites</h4>
+  <a href="{% url 'site_add' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Add site
+  </a>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Enabled</th>
+        <th>Trigger</th>
+        <th>Timezone</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for site in sites %}
+      <tr>
+        <td><a href="{% url 'site_detail' site.name %}">{{ site.name }}</a></td>
+        <td>
+          {% if site.enabled %}
+          <span class="badge text-bg-success">enabled</span>
+          {% else %}
+          <span class="badge text-bg-secondary">disabled</span>
+          {% endif %}
+        </td>
+        <td>
+          {{ site.get_trigger_type_display }}
+          {% if site.trigger_type == "fixed_time" %}
+            @ {{ site.trigger_time }}
+          {% else %}
+            + {{ site.delay_hours }}h
+          {% endif %}
+        </td>
+        <td>{{ site.timezone }}</td>
+        <td class="text-end">
+          <a href="{% url 'site_edit' site.name %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+          <a href="{% url 'site_delete' site.name %}" class="btn btn-sm btn-outline-danger">Delete</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-muted">No sites configured yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

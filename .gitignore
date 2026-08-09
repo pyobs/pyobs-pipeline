@@ -5,3 +5,4 @@ data/
 staticfiles/
 pyobs_pipeline/local_settings.py
 *.egg-info/
+.idea/
