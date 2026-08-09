@@ -62,10 +62,12 @@ class SitePipeline(models.Model):
     site = models.OneToOneField(Site, on_delete=models.CASCADE, related_name="pipeline_assignment")
     pipeline = models.ForeignKey(Pipeline, on_delete=models.CASCADE, related_name="site_assignments")
     input_type = models.CharField(max_length=10, choices=IO_TYPES, default="local")
-    # e.g. {"path": "/data/raw"} or {"class": "pyobs.utils.archive.PyobsArchive", "url": "...", "token": "..."}
+    # e.g. {"path": "/data/raw"} or
+    # {"class": "pyobs.robotic.utils.archive.PyobsArchive", "url": "...", "token": "..."}
     input_config = models.JSONField(default=dict, blank=True)
     output_type = models.CharField(max_length=10, choices=IO_TYPES, default="local")
-    # e.g. {"path": "/data/reduced"} or {"class": "pyobs.utils.archive.PyobsArchive", "url": "...", "token": "..."}
+    # e.g. {"path": "/data/reduced"} or
+    # {"class": "pyobs.robotic.utils.archive.PyobsArchive", "url": "...", "token": "..."}
     output_config = models.JSONField(default=dict, blank=True)
 
     def __str__(self) -> str:
