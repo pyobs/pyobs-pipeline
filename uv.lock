@@ -2149,7 +2149,7 @@ wheels = [
 [[package]]
 name = "pyobs-core"
 version = "2.0.0.dev68"
-source = { git = "https://github.com/pyobs/pyobs-core.git?rev=f5e1c158#f5e1c1586e1c19d4676869c0219635e9fedc0a7b" }
+source = { git = "https://github.com/pyobs/pyobs-core.git?rev=297235cc#297235cc461675c8b2a8b9743974f74d8efa0c62" }
 dependencies = [
     { name = "aiohttp" },
     { name = "astroplan" },
@@ -2214,7 +2214,7 @@ requires-dist = [
     { name = "celery", specifier = ">=5.4" },
     { name = "django", specifier = ">=5.2" },
     { name = "gunicorn", specifier = ">=23.0" },
-    { name = "pyobs-core", extras = ["full"], git = "https://github.com/pyobs/pyobs-core.git?rev=f5e1c158" },
+    { name = "pyobs-core", extras = ["full"], git = "https://github.com/pyobs/pyobs-core.git?rev=297235cc" },
     { name = "redis", specifier = ">=5.2" },
 ]
 

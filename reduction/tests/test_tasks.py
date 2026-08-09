@@ -53,6 +53,41 @@ class BuildReductionConfigTests(TestCase):
         self.assertEqual(config["output"], archive_config)
 
 
+class CalibrationArchivePropagationTests(TestCase):
+    """A Calibration step doesn't need to repeat the site's archive in its own config --
+    pyobs-core's Pipeline forwards its archive to steps that don't specify their own
+    (see pyobs.mixins.pipeline.PipelineMixin). This locks that integration in from the
+    pyobs-pipeline side, using the real pyobs-core classes end to end (no mocking)."""
+
+    def test_calibration_step_without_own_archive_gets_site_archive(self):
+        from pyobs.object import create_object
+
+        site = Site.objects.create(name="S1", lat=0, lon=0, timezone="UTC")
+        pipeline = Pipeline.objects.create(name="P1")
+        PipelineStep.objects.create(
+            pipeline=pipeline,
+            order=0,
+            step_class="pyobs.images.processors.calibration.Calibration",
+            config={"require_bias": False, "require_dark": False, "require_flat": False},
+        )
+        SitePipeline.objects.create(
+            site=site,
+            pipeline=pipeline,
+            input_type="local",
+            input_config={"path": "/tmp/raw"},
+            output_type="local",
+            output_config={"path": "/tmp/reduced"},
+        )
+        period = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1))
+
+        config = build_reduction_config(period)
+        self.assertNotIn("archive", config["pipeline"]["steps"][0])
+
+        reduction = create_object(config)
+        calibration_step = reduction._pipeline._PipelineMixin__pipeline_steps[0]
+        self.assertEqual(calibration_step._archive.root, "/tmp/raw")
+
+
 class ReducePeriodTaskTests(TestCase):
     def setUp(self):
         self.site = Site.objects.create(name="S1", lat=0, lon=0, timezone="UTC")
