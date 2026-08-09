@@ -16,9 +16,16 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-# Points at the sibling checkout until the Night->Reduction rename (pyobs-core PR #743)
-# ships in a released version on PyPI.
-pyobs-core = { path = "../pyobs-core", editable = true }
+# Pinned to a commit on pyobs-core's develop branch (public repo) rather than PyPI --
+# the Night->Reduction rename (PR #743) this project depends on hasn't shipped in a
+# release yet. Switch to a version pin once it does. A git source (not a local path)
+# is required here so `uv sync` also works inside the Docker build, which has no
+# sibling ../pyobs-core checkout in its build context.
+#
+# For local tandem development against an in-progress pyobs-core change, temporarily
+# point this at { path = "../pyobs-core", editable = true } instead -- just don't
+# commit that swap.
+pyobs-core = { git = "https://github.com/pyobs/pyobs-core.git", rev = "642bc906471298df8f98e490960578d9ffb93805" }
 
 [build-system]
 requires = ["hatchling"]

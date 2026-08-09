@@ -2149,7 +2149,7 @@ wheels = [
 [[package]]
 name = "pyobs-core"
 version = "2.0.0.dev68"
-source = { editable = "../pyobs-core" }
+source = { git = "https://github.com/pyobs/pyobs-core.git?rev=642bc906471298df8f98e490960578d9ffb93805#642bc906471298df8f98e490960578d9ffb93805" }
 dependencies = [
     { name = "aiohttp" },
     { name = "astroplan" },
@@ -2195,84 +2195,6 @@ full = [
     { name = "tornado" },
 ]
 
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp", specifier = ">=3.11.18,<4" },
-    { name = "astroplan", specifier = ">=0.10.1,<0.11" },
-    { name = "astropy", specifier = ">=7.0.1,<9" },
-    { name = "astropy-iers-data", specifier = ">=0.2026.6.22.1.23.34" },
-    { name = "astropydantic", specifier = ">=0.0.5" },
-    { name = "astroquery", specifier = ">=0.4.10,<0.5" },
-    { name = "asyncinotify", marker = "extra == 'full'", specifier = ">=4.2.1,<5" },
-    { name = "ccdproc", marker = "extra == 'full'", specifier = ">=2.4.3,<3" },
-    { name = "colour", specifier = ">=0.1.5,<0.2" },
-    { name = "dacite", specifier = ">=1.9.2" },
-    { name = "dbus-next", specifier = ">=0.2.3,<0.3" },
-    { name = "filelock", marker = "extra == 'full'", specifier = ">=3.28.0" },
-    { name = "influxdb-client", specifier = ">=1.49.0" },
-    { name = "lmfit", marker = "extra == 'full'", specifier = ">=1.3.3,<2" },
-    { name = "logging-journald", specifier = ">=0.6.11" },
-    { name = "matrix-nio", marker = "extra == 'full'", specifier = ">=0.25.2" },
-    { name = "numpy", specifier = ">=2.2.5,<3" },
-    { name = "opencv-python-headless", marker = "extra == 'full'", specifier = ">=4.10.0.84" },
-    { name = "pandas", specifier = ">=2.2.3" },
-    { name = "paramiko", specifier = ">=3.5.1" },
-    { name = "photutils", marker = "extra == 'full'", specifier = ">=3.0.0,<4" },
-    { name = "pillow", specifier = ">=12.3.0" },
-    { name = "psutil", specifier = ">=7.2.2" },
-    { name = "py-expression-eval", specifier = ">=0.3.14,<0.4" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "pyside6", marker = "extra == 'gui'", specifier = ">=6.11.0" },
-    { name = "python-daemon", marker = "extra == 'full'", specifier = ">=3.1.2,<4" },
-    { name = "python-telegram-bot", marker = "extra == 'full'", specifier = "~=22.0" },
-    { name = "pytz", specifier = ">=2025.2,<2027.0" },
-    { name = "pyyaml", specifier = ">=6.0.2,<7" },
-    { name = "qfitswidget", marker = "extra == 'gui'", specifier = ">=0.13.1" },
-    { name = "qtpy", marker = "extra == 'gui'", specifier = ">=2.4.3" },
-    { name = "requests", specifier = ">=2.32.3,<3" },
-    { name = "scipy", specifier = ">=1.15.2,<2" },
-    { name = "sep", marker = "sys_platform == 'linux' and extra == 'full'", specifier = ">=1.4.1,<2" },
-    { name = "single-source", specifier = ">=0.4.0,<0.5" },
-    { name = "slixmpp", specifier = ">=1.14.1" },
-    { name = "sunpy", marker = "extra == 'full'", specifier = ">=7.0.1" },
-    { name = "tenacity", specifier = ">=9.1.4" },
-    { name = "tornado", marker = "extra == 'full'", specifier = ">=6.4.2,<7" },
-    { name = "typing-extensions", specifier = ">=4.13.2,<5" },
-]
-provides-extras = ["full", "gui"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "aioresponses", specifier = ">=0.7.8" },
-    { name = "black", specifier = ">=25.1.0,<27" },
-    { name = "coverage", specifier = ">=7.9.2" },
-    { name = "flake8", specifier = ">=7.3.0" },
-    { name = "pandas-stubs", specifier = ">=3.0.3.260530" },
-    { name = "pre-commit", specifier = ">=4.2.0,<5" },
-    { name = "pylint", specifier = ">=4.0.5" },
-    { name = "pyrefly", specifier = ">=1.1.1" },
-    { name = "pyside6-stubs", specifier = ">=6.7.3.0" },
-    { name = "pytest", specifier = ">=8.3.5,<10" },
-    { name = "pytest-asyncio", specifier = ">=0.26.0,<1.5" },
-    { name = "pytest-cov", specifier = ">=6.1.1,<8" },
-    { name = "pytest-mock", specifier = ">=3.14.0,<4" },
-    { name = "radon", specifier = ">=6.0.1" },
-    { name = "ruff", specifier = ">=0.15.16" },
-    { name = "sphinx", specifier = ">=8.2.3" },
-    { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
-    { name = "types-cryptography", specifier = ">=3.3.23.2,<4" },
-    { name = "types-enum34", specifier = ">=1.1.8,<2" },
-    { name = "types-ipaddress", specifier = ">=1.0.8,<2" },
-    { name = "types-paramiko", specifier = ">=3.5.0.20240928,<6" },
-    { name = "types-psutil", specifier = ">=7.2.2.20260518" },
-    { name = "types-pytz", specifier = ">=2025.2.0.20250326,<2026" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20250402,<7" },
-    { name = "types-requests", specifier = ">=2.32.0.20250328,<3" },
-    { name = "types-setuptools", specifier = ">=80.3.0.20250505,<84" },
-    { name = "types-toml", specifier = ">=0.10.8.20240310,<0.11" },
-    { name = "types-tornado", specifier = ">=5.1.1,<6" },
-]
-
 [[package]]
 name = "pyobs-pipeline"
 version = "0.1.0"
@@ -2292,7 +2214,7 @@ requires-dist = [
     { name = "celery", specifier = ">=5.4" },
     { name = "django", specifier = ">=5.2" },
     { name = "gunicorn", specifier = ">=23.0" },
-    { name = "pyobs-core", extras = ["full"], editable = "../pyobs-core" },
+    { name = "pyobs-core", extras = ["full"], git = "https://github.com/pyobs/pyobs-core.git?rev=642bc906471298df8f98e490960578d9ffb93805" },
     { name = "redis", specifier = ">=5.2" },
 ]
 

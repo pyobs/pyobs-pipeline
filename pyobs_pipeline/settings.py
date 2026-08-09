@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -79,6 +80,19 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 86400}
 # Beat backfill cap — see reduction/scheduler.py. A site left disabled for a long
 # stretch shouldn't dispatch a huge backlog the moment it's re-enabled.
 MAX_BACKFILL_DAYS = 7
+
+# Docker Compose (see docker-compose.yml) has no local_settings.py in the image -- these
+# env vars are its only config surface, and take priority over the defaults above. A
+# bare-metal deploy using local_settings.py instead (below) still wins over both, since
+# these env vars are normally unset there.
+SECRET_KEY = os.environ.get("SECRET_KEY", SECRET_KEY)
+DEBUG = os.environ.get("DEBUG", str(DEBUG)).lower() == "true"
+if os.environ.get("ALLOWED_HOSTS"):
+    ALLOWED_HOSTS = os.environ["ALLOWED_HOSTS"].split(",")
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", ADMIN_USERNAME)
+ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", ADMIN_PASSWORD_HASH)
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", CELERY_BROKER_URL)
+MAX_BACKFILL_DAYS = int(os.environ.get("MAX_BACKFILL_DAYS", MAX_BACKFILL_DAYS))
 
 try:
     from pyobs_pipeline.local_settings import *  # noqa: F401,F403

@@ -1,0 +1,61 @@
+services:
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data  # db.sqlite3 lives here, persisted outside the container
+    environment:
+      - SECRET_KEY
+      - DEBUG
+      - ALLOWED_HOSTS
+      - ADMIN_USERNAME
+      - ADMIN_PASSWORD_HASH
+      - CELERY_BROKER_URL
+      - MAX_BACKFILL_DAYS
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: uv run celery -A pyobs_pipeline worker --loglevel=info --concurrency=4 --pool=prefork
+    volumes:
+      - ./data:/app/data
+    environment:
+      - SECRET_KEY
+      - DEBUG
+      - ALLOWED_HOSTS
+      - ADMIN_USERNAME
+      - ADMIN_PASSWORD_HASH
+      - CELERY_BROKER_URL
+      - MAX_BACKFILL_DAYS
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  beat:
+    build: .
+    command: uv run celery -A pyobs_pipeline beat --loglevel=info --scheduler reduction.scheduler.DbScheduler
+    volumes:
+      - ./data:/app/data
+    environment:
+      - SECRET_KEY
+      - DEBUG
+      - ALLOWED_HOSTS
+      - ADMIN_USERNAME
+      - ADMIN_PASSWORD_HASH
+      - CELERY_BROKER_URL
+      - MAX_BACKFILL_DAYS
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis-data:

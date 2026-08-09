@@ -1,9 +1,9 @@
+.git/
+.venv/
 __pycache__/
 *.pyc
-.venv/
 data/
 staticfiles/
+.idea/
 pyobs_pipeline/local_settings.py
 .env
-*.egg-info/
-.idea/
