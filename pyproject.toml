@@ -1,6 +1,6 @@
 [project]
 name = "pyobs-pipeline"
-version = "0.1.0"
+version = "0.2.0"
 description = "Web-based monitoring and configuration for pyobs data reduction pipelines"
 authors = [
     { name = "Tim-Oliver Husser", email = "thusser@uni-goettingen.de" },
