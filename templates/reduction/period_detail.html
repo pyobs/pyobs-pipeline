@@ -2,7 +2,7 @@
 {% block title %}{{ period.site.name }} {{ period.date }} — pyobs Pipeline{% endblock %}
 {% block content %}
 <div id="period-page" data-period-id="{{ period.pk }}" data-status="{{ period.status }}"
-     data-calib-count="{{ period.progress.calibs|length }}" data-frame-count="{{ frames_done }}">
+     data-calib-count="{{ period.progress.calibs|length }}">
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">
@@ -81,39 +81,22 @@
 <div class="card mb-4">
   <div class="card-header">Progress</div>
   <div class="card-body">
+    <div class="small text-muted mb-1">Master calibrations created</div>
+    <ul id="calib-list" class="list-unstyled small mb-3" style="max-height:220px;overflow-y:auto">
+      {% for calib in period.progress.calibs %}
+      <li>{{ calib.image_type }} &middot; {{ calib.instrument }} {{ calib.binning }}{% if calib.filter %} {{ calib.filter }}{% endif %} &mdash; <code>{{ calib.filename }}</code></li>
+      {% empty %}
+      <li class="text-muted">(none yet)</li>
+      {% endfor %}
+    </ul>
+
     <div class="d-flex justify-content-between small text-muted mb-1">
       <span>Science frames</span>
       <span id="frames-progress-text">{{ frames_done }} / {{ frames_total }}</span>
     </div>
-    <div class="progress mb-3" style="height: 0.5rem;">
+    <div class="progress mb-0" style="height: 0.5rem;">
       <div id="frames-progress-bar" class="progress-bar" role="progressbar" style="width: {{ frames_percent }}%"
            aria-valuenow="{{ frames_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="small text-muted mb-1">Master calibrations created</div>
-        <ul id="calib-list" class="list-unstyled small mb-0" style="max-height:220px;overflow-y:auto">
-          {% for calib in period.progress.calibs %}
-          <li>{{ calib.image_type }} &middot; {{ calib.instrument }} {{ calib.binning }}{% if calib.filter %} {{ calib.filter }}{% endif %} &mdash; <code>{{ calib.filename }}</code></li>
-          {% empty %}
-          <li class="text-muted">(none yet)</li>
-          {% endfor %}
-        </ul>
-      </div>
-      <div class="col-md-6">
-        <div class="small text-muted mb-1">Science frames processed</div>
-        <ul id="frame-list" class="list-unstyled small mb-0" style="max-height:220px;overflow-y:auto">
-          {% for item in period.progress.frames.items %}
-          <li>
-            {% if item.status == "ok" %}<span class="text-success">&check;</span>{% else %}<span class="text-danger">&times;</span>{% endif %}
-            <code>{{ item.filename }}</code>
-          </li>
-          {% empty %}
-          <li class="text-muted">(none yet)</li>
-          {% endfor %}
-        </ul>
-      </div>
     </div>
   </div>
 </div>
@@ -147,11 +130,9 @@
   liveIndicator.style.display = "inline-flex";
 
   const calibList = document.getElementById("calib-list");
-  const frameList = document.getElementById("frame-list");
   const progressBar = document.getElementById("frames-progress-bar");
   const progressText = document.getElementById("frames-progress-text");
   let calibCount = parseInt(page.dataset.calibCount, 10) || 0;
-  let frameCount = parseInt(page.dataset.frameCount, 10) || 0;
 
   const statusUrl = `/periods/${periodId}/api/status/`;
 
@@ -166,22 +147,6 @@
       const filter = c.filter ? ` ${c.filter}` : "";
       li.innerHTML = `${c.image_type} &middot; ${c.instrument} ${c.binning}${filter} &mdash; <code>${c.filename}</code>`;
       calibList.appendChild(li);
-    }
-  }
-
-  function renderFrames(items) {
-    frameList.innerHTML = "";
-    if (items.length === 0) {
-      frameList.innerHTML = '<li class="text-muted">(none yet)</li>';
-      return;
-    }
-    for (const item of items) {
-      const li = document.createElement("li");
-      const mark = item.status === "ok"
-        ? '<span class="text-success">&check;</span>'
-        : '<span class="text-danger">&times;</span>';
-      li.innerHTML = `${mark} <code>${item.filename}</code>`;
-      frameList.appendChild(li);
     }
   }
 
@@ -211,10 +176,6 @@
     if (calibs.length !== calibCount) {
       renderCalibs(calibs);
       calibCount = calibs.length;
-    }
-    if (items.length !== frameCount) {
-      renderFrames(items);
-      frameCount = items.length;
     }
     const percent = total ? Math.round((items.length / total) * 100) : 0;
     progressBar.style.width = `${percent}%`;
