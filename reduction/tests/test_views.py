@@ -234,6 +234,36 @@ class PeriodViewTests(AuthenticatedTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(list(response.context["periods"].values_list("status", flat=True)), ["FAILED"])
 
+    def test_period_list_hides_older_periods_for_same_date_by_default(self):
+        site = self._make_site_with_pipeline()
+        old = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="FAILED")
+        latest = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="COMPLETED")
+        assert latest.pk > old.pk
+
+        response = self.client.get(reverse("period_list"))
+        self.assertEqual(list(response.context["periods"].values_list("pk", flat=True)), [latest.pk])
+
+    def test_period_list_history_shows_all_periods_for_same_date(self):
+        site = self._make_site_with_pipeline()
+        old = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="FAILED")
+        latest = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="COMPLETED")
+
+        response = self.client.get(reverse("period_list"), {"history": "1"})
+        self.assertCountEqual(
+            response.context["periods"].values_list("pk", flat=True), [old.pk, latest.pk]
+        )
+
+    def test_period_detail_lists_history_for_same_site_and_date(self):
+        site = self._make_site_with_pipeline()
+        old = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="FAILED")
+        latest = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="COMPLETED")
+
+        response = self.client.get(reverse("period_detail", args=[latest.pk]))
+        self.assertEqual(list(response.context["history"].values_list("pk", flat=True)), [old.pk])
+
+        response = self.client.get(reverse("period_detail", args=[old.pk]))
+        self.assertEqual(list(response.context["history"].values_list("pk", flat=True)), [latest.pk])
+
     @patch("reduction.period_actions.reduce_period.delay")
     def test_start_on_enabled_site(self, mock_delay):
         mock_delay.return_value.id = "task-123"

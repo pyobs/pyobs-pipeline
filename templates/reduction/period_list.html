@@ -22,9 +22,16 @@
   </div>
   {% if site_filter or status_filter %}
   <div class="col-auto">
-    <a href="{% url 'period_list' %}" class="btn btn-sm btn-outline-secondary">Clear filters</a>
+    <a href="{% url 'period_list' %}{% if show_history %}?history=1{% endif %}" class="btn btn-sm btn-outline-secondary">Clear filters</a>
   </div>
   {% endif %}
+  <div class="col-auto ms-auto">
+    {% if show_history %}
+    <a href="?{% if site_filter %}site={{ site_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}" class="btn btn-sm btn-outline-secondary">Latest only</a>
+    {% else %}
+    <a href="?{% if site_filter %}site={{ site_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}history=1" class="btn btn-sm btn-outline-secondary">Show history</a>
+    {% endif %}
+  </div>
 </form>
 
 <div class="table-responsive">

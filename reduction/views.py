@@ -3,6 +3,7 @@ import os
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
+from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -353,6 +354,15 @@ def period_list(request):
     periods = ReductionPeriod.objects.select_related("site").all()
     site_filter = request.GET.get("site", "")
     status_filter = request.GET.get("status", "")
+    show_history = request.GET.get("history") == "1"
+
+    if not show_history:
+        # A restart never overwrites a row, it creates a new one for the same site+date (see
+        # period_actions.restart_period) — collapse to the most recent attempt per site+date by
+        # default, since older rows are only useful as history, not as the current picture.
+        latest_ids = ReductionPeriod.objects.values("site_id", "date").annotate(latest_id=Max("id"))
+        periods = periods.filter(pk__in=latest_ids.values("latest_id"))
+
     if site_filter:
         periods = periods.filter(site__name=site_filter)
     if status_filter:
@@ -366,6 +376,7 @@ def period_list(request):
             "statuses": ReductionPeriod.STATUS_CHOICES,
             "site_filter": site_filter,
             "status_filter": status_filter,
+            "show_history": show_history,
         },
     )
 
@@ -376,11 +387,15 @@ def _period_context(period: ReductionPeriod) -> dict:
         .exclude(pk=period.pk)
         .exists()
     )
+    history = (
+        ReductionPeriod.objects.filter(site=period.site, date=period.date).exclude(pk=period.pk).order_by("-pk")
+    )
     return {
         "period": period,
         "can_start": period.status in ("PENDING", "FAILED", "CANCELLED") and not active_conflict,
         "can_stop": period.status == "RUNNING",
         "can_reset": period.status in ("QUEUED", "RUNNING"),
+        "history": history,
     }
 
 
