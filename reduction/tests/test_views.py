@@ -253,6 +253,20 @@ class PeriodViewTests(AuthenticatedTestCase):
             response.context["periods"].values_list("pk", flat=True), [old.pk, latest.pk]
         )
 
+    def test_dashboard_collapses_to_latest_period_per_site_and_date(self):
+        site = self._make_site_with_pipeline()
+        old = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="FAILED")
+        latest = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="COMPLETED")
+
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(
+            list(response.context["recent_periods"].values_list("pk", flat=True)), [latest.pk]
+        )
+        self.assertNotIn(old.pk, [p.pk for p in response.context["recent_periods"]])
+
+        card = next(c for c in response.context["site_cards"] if c["site"].pk == site.pk)
+        self.assertEqual(card["last_period"].pk, latest.pk)
+
     def test_period_detail_lists_history_for_same_site_and_date(self):
         site = self._make_site_with_pipeline()
         old = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="FAILED")

@@ -43,6 +43,18 @@ def logout_view(request):
     return redirect("/login/")
 
 
+def _latest_periods():
+    """ReductionPeriod queryset collapsed to the latest attempt per site+date.
+
+    A restart never overwrites a row, it creates a new one for the same site+date (see
+    period_actions.restart_period) -- older rows are only useful as history (see period_detail's
+    "history" list), not as the current picture, so callers showing a periods overview should
+    filter through this rather than querying ReductionPeriod directly.
+    """
+    latest_ids = ReductionPeriod.objects.values("site_id", "date").annotate(latest_id=Max("id"))
+    return ReductionPeriod.objects.filter(pk__in=latest_ids.values("latest_id"))
+
+
 def _io_status(io_type: str, io_config: dict) -> dict:
     """Cheap, synchronous status for a dashboard card -- a real network round-trip to an
     archive would slow the dashboard down for every load, so this only checks what's
@@ -65,7 +77,7 @@ def dashboard(request):
         site_cards.append(
             {
                 "site": site,
-                "last_period": site.periods.order_by("-date").first(),
+                "last_period": site.periods.order_by("-date", "-id").first(),
                 "next_turnover": next_turnover,
                 "assignment": assignment,
                 "input_status": _io_status(assignment.input_type, assignment.input_config) if assignment else None,
@@ -75,7 +87,7 @@ def dashboard(request):
             }
         )
 
-    recent_periods = ReductionPeriod.objects.select_related("site").all()[:10]
+    recent_periods = _latest_periods().select_related("site").order_by("-date", "-id")[:10]
     return render(
         request,
         "reduction/dashboard.html",
@@ -357,11 +369,7 @@ def period_list(request):
     show_history = request.GET.get("history") == "1"
 
     if not show_history:
-        # A restart never overwrites a row, it creates a new one for the same site+date (see
-        # period_actions.restart_period) — collapse to the most recent attempt per site+date by
-        # default, since older rows are only useful as history, not as the current picture.
-        latest_ids = ReductionPeriod.objects.values("site_id", "date").annotate(latest_id=Max("id"))
-        periods = periods.filter(pk__in=latest_ids.values("latest_id"))
+        periods = periods.filter(pk__in=_latest_periods().values("pk"))
 
     if site_filter:
         periods = periods.filter(site__name=site_filter)
