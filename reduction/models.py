@@ -1,4 +1,9 @@
+from django.core.validators import RegexValidator
 from django.db import models
+
+# name is used directly as a URL path segment (sites/<str:name>/) -- a "/" in it breaks
+# routing entirely (NoReverseMatch on every page linking to the site).
+_no_slash_validator = RegexValidator(regex=r"^[^/]+$", message='Site name can\'t contain "/" -- it\'s used directly in URLs.')
 
 
 class Site(models.Model):
@@ -8,7 +13,15 @@ class Site(models.Model):
         ("fixed_time", "Fixed local time"),
     ]
 
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True, validators=[_no_slash_validator])
+    siteid = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=(
+            "Site code as known to the archive (e.g. \"monets\"), used when querying frames. "
+            "Not necessarily the same as the display name above -- falls back to it if left blank."
+        ),
+    )
     lat = models.FloatField()
     lon = models.FloatField()
     timezone = models.CharField(max_length=64)

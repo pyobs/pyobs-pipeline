@@ -78,6 +78,14 @@ class SiteViewTests(AuthenticatedTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Site.objects.filter(name="S1").exists())
 
+    def test_add_rejects_slash_in_name(self):
+        response = self.client.post(
+            reverse("site_add"),
+            {"name": "MONET/S", "lat": 0, "lon": 0, "timezone": "UTC", "trigger_type": "sunrise", "delay_hours": 3.0},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Site.objects.filter(name="MONET/S").exists())
+
     def test_site_pipeline_assignment_form_local(self):
         site = Site.objects.create(name="S1", lat=0, lon=0, timezone="UTC")
         pipeline = Pipeline.objects.create(name="P1")

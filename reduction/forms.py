@@ -8,6 +8,7 @@ class SiteForm(forms.ModelForm):
         model = Site
         fields = [
             "name",
+            "siteid",
             "lat",
             "lon",
             "timezone",
@@ -18,6 +19,7 @@ class SiteForm(forms.ModelForm):
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
+            "siteid": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. monets (defaults to name if blank)"}),
             "lat": forms.NumberInput(attrs={"class": "form-control", "step": "any"}),
             "lon": forms.NumberInput(attrs={"class": "form-control", "step": "any"}),
             "timezone": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Europe/Berlin"}),

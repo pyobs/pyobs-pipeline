@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import threading
+import time
 import traceback
 
 from celery import shared_task
@@ -43,14 +45,52 @@ def build_reduction_config(period: ReductionPeriod) -> dict:
 
 class _LogCollector(logging.Handler):
     """Relies on --pool=prefork: each task runs in its own worker process, so a
-    process-global root handler only ever sees this task's log records."""
+    process-global root handler only ever sees this task's log records.
 
-    def __init__(self) -> None:
+    Periodically flushes to the DB while the task runs (throttled to FLUSH_INTERVAL --
+    no point writing faster than the log viewer's own poll interval), not just once at
+    the end -- otherwise the "live" log viewer has nothing to show until the task is
+    already done.
+
+    emit() fires synchronously from inside asyncio.run()'s active event loop (any log
+    call made by awaited code runs there) -- confirmed empirically that a direct ORM
+    write at that point raises SynchronousOnlyOperation, since Django's async-unsafe
+    guard trips on any running loop in the current thread, not just genuinely-async
+    callers. The write runs on a plain background thread instead, which has no event
+    loop of its own."""
+
+    FLUSH_INTERVAL = 2.0  # seconds, matches period_detail.html's poll interval
+
+    def __init__(self, period_id: int, prior_logs: str) -> None:
         super().__init__()
+        self._period_id = period_id
+        self._prior_logs = prior_logs
         self.lines: list[str] = []
+        self._last_flush = 0.0
+        self._flush_thread: threading.Thread | None = None
+
+    @property
+    def full_text(self) -> str:
+        new_lines = "\n".join(self.lines)
+        return f"{self._prior_logs}\n{new_lines}" if self._prior_logs else new_lines
+
+    def _write(self, text: str) -> None:
+        ReductionPeriod.objects.filter(pk=self._period_id).update(logs=text)
+
+    def flush_to_db(self) -> None:
+        # Skip this round if the previous flush is still in flight, rather than piling
+        # up threads -- the next throttled emit() will pick up everything anyway.
+        if self._flush_thread is not None and self._flush_thread.is_alive():
+            return
+        self._flush_thread = threading.Thread(target=self._write, args=(self.full_text,), daemon=True)
+        self._flush_thread.start()
 
     def emit(self, record: logging.LogRecord) -> None:
         self.lines.append(self.format(record))
+        now = time.monotonic()
+        if now - self._last_flush >= self.FLUSH_INTERVAL:
+            self.flush_to_db()
+            self._last_flush = now
 
 
 @shared_task(bind=True)
@@ -61,7 +101,7 @@ def reduce_period(self, site_id: int, period_id: int) -> None:
     period.task_id = self.request.id or ""
     period.save(update_fields=["status", "started_at", "task_id"])
 
-    handler = _LogCollector()
+    handler = _LogCollector(period.pk, period.logs)
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
     root_logger = logging.getLogger()
     root_logger.addHandler(handler)
@@ -69,14 +109,20 @@ def reduce_period(self, site_id: int, period_id: int) -> None:
     try:
         config = build_reduction_config(period)
         reduction = create_object(config)
-        asyncio.run(reduction(period.site.name, period.date.isoformat()))
+        # siteid is the archive's own site code (e.g. "monets"), which isn't always the
+        # same as the display name used in URLs/UI -- falls back to name if unset.
+        asyncio.run(reduction(period.site.siteid or period.site.name, period.date.isoformat()))
         period.status = "COMPLETED"
     except Exception:
         period.status = "FAILED"
         handler.lines.append(traceback.format_exc())
     finally:
         root_logger.removeHandler(handler)
-        new_lines = "\n".join(handler.lines)
-        period.logs = f"{period.logs}\n{new_lines}" if period.logs else new_lines
+        # Wait for any in-flight background flush (see _LogCollector.flush_to_db) before
+        # writing the final state -- otherwise it could complete after this save and
+        # clobber it back to a stale, incomplete log.
+        if handler._flush_thread is not None:
+            handler._flush_thread.join(timeout=5)
+        period.logs = handler.full_text
         period.finished_at = dj_timezone.now()
         period.save(update_fields=["status", "logs", "finished_at"])

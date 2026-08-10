@@ -22,6 +22,7 @@
       <div class="card-header">Location &amp; schedule</div>
       <div class="card-body">
         <dl class="row mb-0">
+          <dt class="col-5">Archive site code</dt><dd class="col-7"><code>{{ site.siteid|default:site.name }}</code></dd>
           <dt class="col-5">Lat / Lon</dt><dd class="col-7">{{ site.lat }}, {{ site.lon }}</dd>
           <dt class="col-5">Timezone</dt><dd class="col-7">{{ site.timezone }}</dd>
           <dt class="col-5">Trigger</dt>

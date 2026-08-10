@@ -1,5 +1,6 @@
 import datetime as dt
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 
@@ -18,6 +19,18 @@ class SiteModelTests(TestCase):
         Site.objects.create(name="Sutherland", lat=0, lon=0, timezone="UTC")
         with self.assertRaises(IntegrityError):
             Site.objects.create(name="Sutherland", lat=1, lon=1, timezone="UTC")
+
+    def test_name_rejects_slash(self):
+        """name is used directly as a URL path segment (sites/<str:name>/) -- a "/" in
+        it breaks routing entirely (confirmed live: NoReverseMatch on every page linking
+        to the site)."""
+        site = Site(name="MONET/S", lat=0, lon=0, timezone="UTC")
+        with self.assertRaises(ValidationError):
+            site.full_clean()
+
+    def test_siteid_defaults_blank(self):
+        site = Site.objects.create(name="Sutherland", lat=0, lon=0, timezone="UTC")
+        self.assertEqual(site.siteid, "")
 
 
 class PipelineModelTests(TestCase):
