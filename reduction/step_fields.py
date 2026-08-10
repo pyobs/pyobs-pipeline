@@ -8,7 +8,17 @@ import types
 import typing
 from typing import Any
 
+from pyobs.images.processor import ImageProcessor
 from pyobs.object import get_class_from_string
+
+# Fields with a fixed set of allowed values that inspect.signature can't recover on its
+# own (their annotation is just `str`) -- rendered as a <select> instead of a text input.
+_CHOICE_FIELDS = {"on_error": sorted(ImageProcessor.VALID_ERROR_MODES)}
+
+# Builder-only default overrides for a freshly-added (not yet configured) step -- the
+# value pre-selected in the form, not a change to pyobs-core's own ImageProcessor
+# default ("raise"). A step only gets this value if it's actually saved with it.
+_DEFAULT_OVERRIDES = {"on_error": "error"}
 
 
 @functools.lru_cache(maxsize=1)
@@ -72,6 +82,17 @@ def _map_type(annotation: Any) -> str:
     return "json"
 
 
+def _base_processor_params() -> dict[str, inspect.Parameter]:
+    """ImageProcessor.__init__'s own params (currently just on_error). Most concrete
+    processors declare their own __init__ ending in **kwargs and never redeclare these
+    themselves -- inspect.signature(cls.__init__) alone would then miss them entirely,
+    since they're swallowed into that **kwargs rather than appearing in the signature.
+    A few processors (e.g. AstrometryDotNet) do redeclare on_error explicitly; those
+    keep their own declaration, see get_step_fields's use of setdefault below."""
+    sig = inspect.signature(ImageProcessor.__init__, eval_str=True)
+    return {name: param for name, param in sig.parameters.items() if name != "self"}
+
+
 def get_step_fields(step_class_path: str) -> list[dict[str, Any]]:
     """Introspect a processor class and return form field definitions.
 
@@ -79,14 +100,20 @@ def get_step_fields(step_class_path: str) -> list[dict[str, Any]]:
         get_step_fields("pyobs.images.processors.calibration.Calibration")
         -> [{"name": "max_cache_size", "type": "integer", "default": 20, "label": "Max Cache Size"},
             {"name": "require_bias", "type": "boolean", "default": True, "label": "Require Bias"},
-            ...]
+            ...,
+            {"name": "on_error", "type": "choices", "choices": ["error", "ignore", "info", "raise"], ...}]
     """
     cls = get_class_from_string(step_class_path)
     # eval_str=True resolves string annotations from `from __future__ import annotations`
     # (used throughout pyobs-core) back into real type objects.
     sig = inspect.signature(cls.__init__, eval_str=True)
+    params = dict(sig.parameters)
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+        for name, param in _base_processor_params().items():
+            params.setdefault(name, param)
+
     fields = []
-    for name, param in sig.parameters.items():
+    for name, param in params.items():
         if name in ("self", "kwargs", "args"):
             continue
         if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
@@ -99,13 +126,16 @@ def get_step_fields(step_class_path: str) -> list[dict[str, Any]]:
             # operator redundantly (or inconsistently) re-specify it per step.
             continue
         default = param.default if param.default is not inspect.Parameter.empty else None
-        fields.append(
-            {
-                "name": name,
-                "type": _map_type(param.annotation),
-                "default": default,
-                "label": name.replace("_", " ").title(),
-                "required": param.default is inspect.Parameter.empty,
-            }
-        )
+        default = _DEFAULT_OVERRIDES.get(name, default)
+        field = {
+            "name": name,
+            "type": _map_type(param.annotation),
+            "default": default,
+            "label": name.replace("_", " ").title(),
+            "required": param.default is inspect.Parameter.empty,
+        }
+        if name in _CHOICE_FIELDS:
+            field["type"] = "choices"
+            field["choices"] = _CHOICE_FIELDS[name]
+        fields.append(field)
     return fields

@@ -40,3 +40,27 @@ class GetStepFieldsTests(SimpleTestCase):
         into a step's config."""
         fields = get_step_fields("pyobs.images.processors.calibration.Calibration")
         self.assertNotIn("archive", [f["name"] for f in fields])
+
+    def test_on_error_appears_for_a_class_that_only_inherits_it(self):
+        """Flip's own __init__ doesn't redeclare on_error -- it's only reachable via the
+        **kwargs it forwards up to ImageProcessor.__init__. inspect.signature(Flip.__init__)
+        alone would miss it entirely; get_step_fields must merge it in."""
+        fields = {f["name"]: f for f in get_step_fields("pyobs.images.processors.image.Flip")}
+        self.assertIn("on_error", fields)
+        self.assertEqual(fields["on_error"]["type"], "choices")
+        self.assertEqual(sorted(fields["on_error"]["choices"]), ["error", "ignore", "info", "raise"])
+
+    def test_on_error_default_is_overridden_to_error(self):
+        """Builder-only default -- pyobs-core's own ImageProcessor default is "raise";
+        a freshly-added step here pre-selects "error" instead, so a failing step gets
+        marked/logged rather than aborting the whole run by default. A step only
+        actually gets on_error="error" if it's saved with that value still selected."""
+        fields = {f["name"]: f for f in get_step_fields("pyobs.images.processors.image.Flip")}
+        self.assertEqual(fields["on_error"]["default"], "error")
+
+    def test_on_error_not_duplicated_for_a_class_that_redeclares_it(self):
+        """AstrometryDotNet explicitly redeclares on_error in its own __init__ -- the
+        merge must not clobber or duplicate that."""
+        fields = [f for f in get_step_fields("pyobs.images.processors.astrometry.AstrometryDotNet") if f["name"] == "on_error"]
+        self.assertEqual(len(fields), 1)
+        self.assertEqual(fields[0]["type"], "choices")

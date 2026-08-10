@@ -19,6 +19,21 @@
       <i class="bi bi-grip-vertical drag-handle" style="cursor:grab" title="Drag to reorder"></i>
       <span class="badge text-bg-secondary">{{ forloop.counter }}</span>
       <code class="flex-grow-1">{{ sv.step.step_class }}</code>
+      {% if sv.on_error_field %}
+      <label class="small text-muted mb-0" for="step{{ sv.step.pk }}_on_error">on error</label>
+      <select class="form-select form-select-sm" style="width:auto" id="step{{ sv.step.pk }}_on_error"
+              name="field_on_error" form="step-config-form-{{ sv.step.pk }}" title="How this step handles a failure">
+        {% for choice in sv.on_error_field.choices %}
+        <option value="{{ choice }}" {% if sv.on_error_field.value == choice %}selected{% endif %}>{{ choice }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      {% if sv.fields is not None %}
+      <button type="submit" class="btn btn-sm btn-secondary step-save-btn" form="step-config-form-{{ sv.step.pk }}"
+              title="Save" disabled>
+        <i class="bi bi-check-lg"></i>
+      </button>
+      {% endif %}
       <form method="post" action="{% url 'pipeline_step_delete' pipeline.name sv.step.pk %}" class="mb-0">
         {% csrf_token %}
         <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove step">
@@ -33,7 +48,8 @@
       </div>
       <pre class="mb-0">{{ sv.step.config }}</pre>
       {% else %}
-      <form method="post" action="{% url 'pipeline_step_config' pipeline.name sv.step.pk %}" class="row g-2">
+      <form method="post" action="{% url 'pipeline_step_config' pipeline.name sv.step.pk %}" class="row g-2 step-config-form"
+            id="step-config-form-{{ sv.step.pk }}">
         {% csrf_token %}
         {% for field in sv.fields %}
         <div class="col-12 col-md-6">
@@ -54,6 +70,12 @@
           {% elif field.type == "json" %}
           <textarea class="form-control form-control-sm font-monospace" rows="2"
                     id="step{{ sv.step.pk }}_{{ field.name }}" name="field_{{ field.name }}">{{ field.value|default_if_none:'' }}</textarea>
+          {% elif field.type == "choices" %}
+          <select class="form-select form-select-sm" id="step{{ sv.step.pk }}_{{ field.name }}" name="field_{{ field.name }}">
+            {% for choice in field.choices %}
+            <option value="{{ choice }}" {% if field.value == choice %}selected{% endif %}>{{ choice }}</option>
+            {% endfor %}
+          </select>
           {% else %}
           <input type="text" class="form-control form-control-sm" id="step{{ sv.step.pk }}_{{ field.name }}"
                  name="field_{{ field.name }}" value="{{ field.value|default_if_none:'' }}">
@@ -62,9 +84,6 @@
         {% empty %}
         <p class="text-muted small mb-0">No configurable parameters.</p>
         {% endfor %}
-        <div class="col-12">
-          <button type="submit" class="btn btn-sm btn-primary">Save</button>
-        </div>
       </form>
       {% endif %}
     </div>
@@ -144,6 +163,30 @@
       },
       body: JSON.stringify({order: order}),
     }).then(() => location.reload());
+  });
+})();
+
+(function () {
+  // Save button lives in the card header, not inside <form> -- form.elements still
+  // picks up the on_error <select> and this button via their form="..." attribute,
+  // regardless of DOM position, so FormData(form) sees everything that matters.
+  document.querySelectorAll("form.step-config-form").forEach((form) => {
+    const saveBtn = document.querySelector(`button.step-save-btn[form="${form.id}"]`);
+    if (!saveBtn) return;
+
+    const serialize = () => JSON.stringify([...new FormData(form).entries()]);
+    const initial = serialize();
+    const checkDirty = () => {
+      const dirty = serialize() !== initial;
+      saveBtn.disabled = !dirty;
+      saveBtn.classList.toggle("btn-primary", dirty);
+      saveBtn.classList.toggle("btn-secondary", !dirty);
+    };
+
+    Array.from(form.elements).forEach((el) => {
+      el.addEventListener("input", checkDirty);
+      el.addEventListener("change", checkDirty);
+    });
   });
 })();
 </script>

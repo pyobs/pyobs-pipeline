@@ -215,6 +215,16 @@ def _step_field_values(fields: list[dict], data) -> tuple[dict, list[str]]:
     return config, errors
 
 
+def _step_view(step: PipelineStep, fields: list[dict] | None, error: str | None) -> dict:
+    """on_error moves to the step card's header (a compact dropdown next to the step
+    class), not the per-parameter body form -- it's on every step (inherited from
+    ImageProcessor) and would otherwise dominate the field list of a step with few or
+    no other params."""
+    other_fields = [f for f in fields if f["name"] != "on_error"] if fields is not None else None
+    on_error_field = next((f for f in fields if f["name"] == "on_error"), None) if fields is not None else None
+    return {"step": step, "fields": other_fields, "on_error_field": on_error_field, "error": error}
+
+
 def _build_step_views(pipeline: Pipeline, skip_step_id: int | None = None) -> list[dict]:
     """Introspected field definitions (pre-filled from saved config) for every step,
     skipping `skip_step_id` -- the caller fills that one in itself, e.g. with
@@ -233,7 +243,7 @@ def _build_step_views(pipeline: Pipeline, skip_step_id: int | None = None) -> li
         except Exception as exc:
             fields = None
             error = str(exc)
-        step_views.append({"step": step, "fields": fields, "error": error})
+        step_views.append(_step_view(step, fields, error))
     return step_views
 
 
@@ -292,7 +302,7 @@ def pipeline_step_config(request, name: str, step_id: int):
     step_views = _build_step_views(pipeline, skip_step_id=step.pk)
     step_views.insert(
         next((i for i, sv in enumerate(step_views) if sv["step"].order > step.order), len(step_views)),
-        {"step": step, "fields": fields, "error": None},
+        _step_view(step, fields, None),
     )
 
     return render(
