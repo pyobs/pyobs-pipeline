@@ -101,6 +101,9 @@ class ReductionPeriod(models.Model):
     date = models.DateField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="PENDING")
     logs = models.TextField(blank=True)
+    # {"calibs": [{"image_type", "instrument", "binning", "filter", "filename"}, ...],
+    #  "frames": {"total": int, "items": [{"index", "filename", "status", "error"}, ...]}}
+    progress = models.JSONField(default=dict, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     task_id = models.CharField(max_length=255, blank=True)

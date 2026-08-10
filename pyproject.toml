@@ -12,20 +12,13 @@ dependencies = [
     "celery>=5.4",
     "redis>=5.2",
     "astroplan>=0.10",
-    "pyobs-core[full]",
+    "pyobs-core[full]==2.0.0.dev70",
 ]
 
-[tool.uv.sources]
-# Pinned to a commit on pyobs-core's develop branch (public repo) rather than PyPI --
-# the Night->Reduction rename (PR #743) this project depends on hasn't shipped in a
-# release yet. Switch to a version pin once it does. A git source (not a local path)
-# is required here so `uv sync` also works inside the Docker build, which has no
-# sibling ../pyobs-core checkout in its build context.
-#
-# For local tandem development against an in-progress pyobs-core change, temporarily
-# point this at { path = "../pyobs-core", editable = true } instead -- just don't
-# commit that swap.
-pyobs-core = { git = "https://github.com/pyobs/pyobs-core.git", rev = "297235cc" }
+# For local tandem development against an in-progress pyobs-core change, temporarily add:
+# [tool.uv.sources]
+# pyobs-core = { path = "../pyobs-core", editable = true }
+# -- just don't commit that.
 
 [build-system]
 requires = ["hatchling"]

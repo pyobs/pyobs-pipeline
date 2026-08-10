@@ -398,12 +398,18 @@ def _period_context(period: ReductionPeriod) -> dict:
     history = (
         ReductionPeriod.objects.filter(site=period.site, date=period.date).exclude(pk=period.pk).order_by("-pk")
     )
+    frames = (period.progress or {}).get("frames", {})
+    frames_total = frames.get("total", 0)
+    frames_done = len(frames.get("items", []))
     return {
         "period": period,
         "can_start": period.status in ("PENDING", "FAILED", "CANCELLED") and not active_conflict,
         "can_stop": period.status == "RUNNING",
         "can_reset": period.status in ("QUEUED", "RUNNING"),
         "history": history,
+        "frames_total": frames_total,
+        "frames_done": frames_done,
+        "frames_percent": round(frames_done / frames_total * 100) if frames_total else 0,
     }
 
 
@@ -453,6 +459,7 @@ def period_status_api(request, pk: int):
             "status": period.status,
             "status_display": period.get_status_display(),
             "logs": period.logs,
+            "progress": period.progress,
             "started_at": period.started_at.isoformat() if period.started_at else None,
             "finished_at": period.finished_at.isoformat() if period.finished_at else None,
         }

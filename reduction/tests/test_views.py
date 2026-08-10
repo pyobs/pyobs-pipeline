@@ -370,3 +370,29 @@ class PeriodViewTests(AuthenticatedTestCase):
         data = response.json()
         self.assertEqual(data["status"], "RUNNING")
         self.assertEqual(data["logs"], "line1")
+
+    def test_status_api_returns_progress(self):
+        site = self._make_site_with_pipeline()
+        progress = {"calibs": [{"filename": "bias.fits"}], "frames": {"total": 2, "items": [{"filename": "a"}]}}
+        period = ReductionPeriod.objects.create(
+            site=site, date=dt.date(2026, 8, 1), status="RUNNING", progress=progress
+        )
+        response = self.client.get(reverse("period_status_api", args=[period.pk]))
+        self.assertEqual(response.json()["progress"], progress)
+
+    def test_period_detail_computes_frames_percent(self):
+        site = self._make_site_with_pipeline()
+        progress = {"calibs": [], "frames": {"total": 4, "items": [{"filename": "a"}, {"filename": "b"}]}}
+        period = ReductionPeriod.objects.create(
+            site=site, date=dt.date(2026, 8, 1), status="RUNNING", progress=progress
+        )
+        response = self.client.get(reverse("period_detail", args=[period.pk]))
+        self.assertEqual(response.context["frames_done"], 2)
+        self.assertEqual(response.context["frames_total"], 4)
+        self.assertEqual(response.context["frames_percent"], 50)
+
+    def test_period_detail_frames_percent_zero_when_no_progress_yet(self):
+        site = self._make_site_with_pipeline()
+        period = ReductionPeriod.objects.create(site=site, date=dt.date(2026, 8, 1), status="PENDING")
+        response = self.client.get(reverse("period_detail", args=[period.pk]))
+        self.assertEqual(response.context["frames_percent"], 0)
