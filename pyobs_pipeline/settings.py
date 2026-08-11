@@ -35,6 +35,7 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.request",
                 "reduction.context_processors.pipeline_version",
+                "reduction.context_processors.pyobs_logo",
             ],
         },
     },

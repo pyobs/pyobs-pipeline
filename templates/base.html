@@ -54,6 +54,9 @@
     }
     .sidebar-link:hover  { background-color: var(--pyobs-surface-hover-bg); color: var(--pyobs-surface-text); }
     .sidebar-link.active { background-color: var(--pyobs-accent-bg); color: var(--pyobs-accent-text); }
+    .pyobs-logo-dark { display: none; }
+    [data-bs-theme="dark"] .pyobs-logo-light { display: none; }
+    [data-bs-theme="dark"] .pyobs-logo-dark { display: inline; }
     .main-content { min-width: 0; }
     @media (min-width: 992px) {
       body { overflow: hidden; }
@@ -69,7 +72,8 @@
   <nav class="sidebar app-chrome" id="sidebar">
     <div class="p-3 border-bottom border-secondary-subtle">
       <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-diagram-3 fs-5 text-primary"></i>
+        <img src="{{ pyobs_logo_light_url }}" alt="pyobs" class="pyobs-logo-light" style="height:28px;width:auto;object-fit:contain">
+        <img src="{{ pyobs_logo_dark_url }}" alt="pyobs" class="pyobs-logo-dark" style="height:28px;width:auto;object-fit:contain">
         <div>
           <div class="fw-semibold text-body lh-1">pyobs</div>
           <div class="text-muted" style="font-size:0.7rem">Pipeline{% if pipeline_version %} v{{ pipeline_version }}{% endif %}</div>
