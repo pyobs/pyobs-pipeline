@@ -2201,7 +2201,7 @@ full = [
 
 [[package]]
 name = "pyobs-pipeline"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "astroplan" },
@@ -2219,7 +2219,7 @@ requires-dist = [
     { name = "celery", specifier = ">=5.4" },
     { name = "django", specifier = ">=5.2" },
     { name = "gunicorn", specifier = ">=23.0" },
-    { name = "pyobs-core", extras = ["full"], specifier = "==2.0.0.dev70" },
+    { name = "pyobs-core", extras = ["full"], specifier = ">=2.0.0.dev70" },
     { name = "redis", specifier = ">=5.2" },
     { name = "whitenoise", specifier = ">=6.8" },
 ]
