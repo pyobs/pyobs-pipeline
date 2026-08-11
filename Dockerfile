@@ -11,4 +11,6 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
+RUN uv run python manage.py collectstatic --noinput
+
 CMD ["uv", "run", "gunicorn", "pyobs_pipeline.wsgi:application", "--bind", "0.0.0.0:8000"]
