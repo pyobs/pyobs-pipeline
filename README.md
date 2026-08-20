@@ -34,11 +34,21 @@ DJANGO_SETTINGS_MODULE=pyobs_pipeline.settings uv run python -c \
 `redis://redis:6379/0` (the Compose service name, not `localhost`) unless Redis is hosted
 elsewhere.
 
-**`ADMIN_PASSWORD_HASH` contains `$` characters** (`pbkdf2_sha256$...$...$...`) — Compose
-interpolates `.env` file values, so a bare `$` there is misread as a variable reference
-and silently blanked. Double every `$` to `$$` when pasting the hash in (confirmed: an
-unescaped hash resolves to an empty string inside the container, escaped resolves
-correctly). `.env.example` shows the escaped form.
+**`ADMIN_PASSWORD_HASH` contains `$` characters** (`pbkdf2_sha256$...$...$...`) — docker
+compose interpolates `.env` file values, so a bare `$` there is read as a variable reference
+and silently blanked. With a real hash that wipes out the salt and hash segments (they look
+like valid variable names), leaving a truncated hash that makes every login fail with a 500.
+Double every `$` to `$$` when pasting the hash in; Compose unescapes `$$` back to a single `$`
+inside the container. `.env.example` shows the escaped form. (The legacy `docker-compose` v1
+instead passes `.env` values through verbatim — there, use the hash exactly as
+`make_password()` generated it, with no escaping.)
+
+Verify the hash arrived intact after `up`, before relying on login:
+
+```sh
+docker compose exec web printenv ADMIN_PASSWORD_HASH
+# pbkdf2_sha256$1500000$...   <- single "$" signs, no "$$" anywhere
+```
 
 Bring everything up and run migrations once:
 
@@ -49,6 +59,34 @@ docker compose exec web uv run python manage.py migrate
 
 The app is now at `http://<host>:8000/`, log in with the `ADMIN_USERNAME`/password from
 `.env`.
+
+### Serving over HTTPS (reverse proxy / tunnel)
+
+The Compose `web` service speaks plain HTTP on `:8000` (no TLS). If you put a
+TLS-terminating proxy in front of it — nginx, caddy, a cloudflared/SSH tunnel —
+you must tell Django the origin the browser is really talking to, or **every
+POST (the login form included) fails with `403 CSRF verification failed.
+Request aborted`**. That's Django's CSRF `Origin` check comparing the browser's
+`Origin: https://<host>` header against the scheme gunicorn sees (`http`).
+
+Set it in `.env` (the value must be a full origin, scheme included; comma-separate
+multiple):
+
+```sh
+# e.g. for https://pipeline.monet.uni-goettingen.de:
+CSRF_TRUSTED_ORIGINS=https://pipeline.monet.uni-goettingen.de
+```
+
+If your proxy sets `X-Forwarded-Proto` (nginx's `proxy_set_header
+X-Forwarded-Proto $scheme;`, caddy does by default), also set
+`TRUST_X_FORWARDED_PROTO=true` so `request.is_secure()` reflects HTTPS. Make
+sure the proxy overwrites that header — never trust whatever the client sends.
+
+Then redeploy (the web/worker/beat containers all read the env vars):
+
+```sh
+docker compose up -d --build
+```
 
 ### Operating
 

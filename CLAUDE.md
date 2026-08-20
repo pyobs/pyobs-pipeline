@@ -34,7 +34,12 @@ Local dev needs `pyobs_pipeline/local_settings.py` (gitignored; copy
 `pyobs_pipeline/local_settings.py.example`) for `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` at minimum.
 Docker Compose deployment instead reads all config from env vars (`.env`) — see README.md for the
 full setup/operate/update flow, including a real gotcha: `ADMIN_PASSWORD_HASH` contains literal
-`$` characters that Compose will silently blank out in `.env` unless escaped to `$$`.
+`$` characters, and `docker compose` interpolates `.env` values — a bare `$` is read as a
+variable reference and silently blanked, so each `$` must be doubled to `$$` in `.env` (Compose
+unescapes it back to a single `$` inside the container). Legacy `docker-compose` v1 does the
+opposite: it passes `.env` values through verbatim, so escaping breaks login there. The
+consistency between `.env.example` and `docker-compose.yml` is guarded by
+`reduction/tests/test_deploy_config.py`.
 
 ## Architecture
 
