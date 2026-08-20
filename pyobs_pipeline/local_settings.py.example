@@ -13,6 +13,13 @@ ALLOWED_HOSTS = ["your-hostname-or-ip"]
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
 
+# Served behind a TLS-terminating proxy (nginx/caddy/tunnel)? Then the browser is on
+# https while Django sees http, and the CSRF Origin check rejects every POST -- login
+# included -- with "403 CSRF verification failed" unless the real origin is trusted:
+# CSRF_TRUSTED_ORIGINS = ["https://pipeline.monet.uni-goettingen.de"]
+# And if the proxy sets X-Forwarded-Proto, make Django see HTTPS too:
+# SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # Generate the password hash with:
 #   DJANGO_SETTINGS_MODULE=pyobs_pipeline.settings uv run python -c \
 #     "from django.contrib.auth.hashers import make_password; print(make_password('yourpassword'))"
