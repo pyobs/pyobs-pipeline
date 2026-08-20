@@ -42,3 +42,19 @@ class DeployConfigTests(SimpleTestCase):
         self.assertNotIn("ADMIN_PASSWORD_HASH=pbkdf2_sha256$", env)
         # ...but the transformation example (raw -> escaped) is fine and expected.
         self.assertIn("pbkdf2_sha256$1500000$abc$def", env)
+
+    def test_compose_passes_csrf_and_proxy_env_vars(self):
+        """docker-compose.yml must pass CSRF_TRUSTED_ORIGINS and TRUST_X_FORWARDED_PROTO
+        through to the containers (bare `- NAME` syntax), matching .env.example."""
+        compose = (REPO_ROOT / "docker-compose.yml").read_text()
+        self.assertIn("- CSRF_TRUSTED_ORIGINS", compose)
+        self.assertIn("- TRUST_X_FORWARDED_PROTO", compose)
+        self.assertNotIn("${CSRF_TRUSTED_ORIGINS}", compose)
+        self.assertNotIn("${TRUST_X_FORWARDED_PROTO}", compose)
+
+    def test_env_example_documents_csrf_trusted_origins(self):
+        """.env.example must document CSRF_TRUSTED_ORIGINS and the 403 symptom it prevents."""
+        env = (REPO_ROOT / ".env.example").read_text()
+        self.assertIn("CSRF_TRUSTED_ORIGINS", env)
+        self.assertIn("TRUST_X_FORWARDED_PROTO", env)
+        self.assertIn("CSRF verification failed", env)

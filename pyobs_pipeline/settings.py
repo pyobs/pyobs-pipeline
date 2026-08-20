@@ -103,6 +103,27 @@ ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", ADMIN_PASSWORD_HASH)
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", CELERY_BROKER_URL)
 MAX_BACKFILL_DAYS = int(os.environ.get("MAX_BACKFILL_DAYS", MAX_BACKFILL_DAYS))
 
+# Served behind a TLS-terminating proxy (nginx/caddy/tunnel), the browser talks
+# HTTPS while gunicorn sees plain HTTP, so the CSRF middleware's Origin check
+# rejects every POST (login included) with "403 CSRF verification failed" unless
+# the browser's real origin is trusted here. Comma-separated full origins, e.g.
+# "https://pipeline.monet.uni-goettingen.de". See README.
+CSRF_TRUSTED_ORIGINS = []
+if os.environ.get("CSRF_TRUSTED_ORIGINS"):
+    CSRF_TRUSTED_ORIGINS = [
+        origin.strip()
+        for origin in os.environ["CSRF_TRUSTED_ORIGINS"].split(",")
+        if origin.strip()
+    ]
+
+# Optional: set TRUST_X_FORWARDED_PROTO=true when the proxy also sets
+# X-Forwarded-Proto, so request.is_secure() reflects HTTPS. Not required for
+# login once CSRF_TRUSTED_ORIGINS is set, but keeps scheme-dependent behavior
+# (e.g. secure cookies, referer checks for requests without an Origin header)
+# correct. The proxy must overwrite X-Forwarded-Proto.
+if os.environ.get("TRUST_X_FORWARDED_PROTO", "").lower() == "true":
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 try:
     from pyobs_pipeline.local_settings import *  # noqa: F401,F403
 except ImportError:

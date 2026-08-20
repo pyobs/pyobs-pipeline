@@ -1,14 +1,16 @@
 import datetime as dt
 import json
+import re
 from unittest.mock import patch
 
 from django.contrib.auth.hashers import make_password
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from reduction.models import Pipeline, PipelineStep, ReductionPeriod, Site, SitePipeline
 
 TEST_PASSWORD_HASH = make_password("testpass")
+PROD_HOST = "pipeline.monet.uni-goettingen.de"
 
 
 @override_settings(ADMIN_USERNAME="admin", ADMIN_PASSWORD_HASH=TEST_PASSWORD_HASH)
@@ -35,6 +37,50 @@ class LoginRequiredTests(TestCase):
         response = self.client.post(reverse("login"), {"username": "admin", "password": "wrong", "next": "/"})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Invalid username or password")
+
+
+class LoginCsrfOriginTests(TestCase):
+    """Regression test for the prod login failure: served behind a TLS-terminating
+    proxy, the browser posts with `Origin: https://<host>` while Django sees plain
+    http, so the CSRF Origin check rejects the POST with 403 unless the real origin
+    is in CSRF_TRUSTED_ORIGINS. See README "Serving over HTTPS"."""
+
+    def _login_post(self, origin):
+        client = Client(enforce_csrf_checks=True)
+        page = client.get(reverse("login"), HTTP_HOST=PROD_HOST)
+        self.assertEqual(page.status_code, 200)
+        match = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', page.content.decode())
+        self.assertIsNotNone(match)
+        return client.post(
+            reverse("login"),
+            {
+                "username": "admin",
+                "password": "testpass",
+                "next": "/",
+                "csrfmiddlewaretoken": match.group(1),
+            },
+            HTTP_HOST=PROD_HOST,
+            HTTP_ORIGIN=origin,
+        )
+
+    @override_settings(ADMIN_USERNAME="admin", ADMIN_PASSWORD_HASH=TEST_PASSWORD_HASH)
+    def test_https_origin_rejected_when_not_trusted(self):
+        # Prod before the fix: browser on https, gunicorn on http, nothing trusted.
+        self.assertEqual(self._login_post(f"https://{PROD_HOST}").status_code, 403)
+
+    @override_settings(
+        ADMIN_USERNAME="admin",
+        ADMIN_PASSWORD_HASH=TEST_PASSWORD_HASH,
+        CSRF_TRUSTED_ORIGINS=[f"https://{PROD_HOST}"],
+    )
+    def test_https_origin_accepted_when_trusted(self):
+        # Prod after the fix: CSRF_TRUSTED_ORIGINS covers the browser's real origin.
+        self.assertEqual(self._login_post(f"https://{PROD_HOST}").status_code, 302)
+
+    @override_settings(ADMIN_USERNAME="admin", ADMIN_PASSWORD_HASH=TEST_PASSWORD_HASH)
+    def test_same_scheme_origin_accepted(self):
+        # Plain-http same-origin POST (local dev / direct :8000 access) still works.
+        self.assertEqual(self._login_post(f"http://{PROD_HOST}").status_code, 302)
 
 
 class SiteViewTests(AuthenticatedTestCase):
