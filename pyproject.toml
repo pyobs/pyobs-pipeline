@@ -1,6 +1,6 @@
 [project]
 name = "pyobs-pipeline"
-version = "2.0.0.dev3"
+version = "2.0.0.dev4"
 description = "Web-based monitoring and configuration for pyobs data reduction pipelines"
 authors = [
     { name = "Tim-Oliver Husser", email = "thusser@uni-goettingen.de" },
@@ -20,6 +20,12 @@ dependencies = [
 # [tool.uv.sources]
 # pyobs-core = { path = "../pyobs-core", editable = true }
 # -- just don't commit that.
+
+[dependency-groups]
+dev = [
+    "Sphinx",
+    "sphinx-rtd-theme",
+]
 
 [build-system]
 requires = ["hatchling"]
