@@ -21,6 +21,12 @@ dependencies = [
 # pyobs-core = { path = "../pyobs-core", editable = true }
 # -- just don't commit that.
 
+[dependency-groups]
+dev = [
+    "Sphinx",
+    "sphinx-rtd-theme",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
