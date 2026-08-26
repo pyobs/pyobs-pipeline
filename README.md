@@ -6,6 +6,8 @@ guided builder, replacing SSH + manual YAML editing. See
 [`specs/plans/pyobs-pipeline.md`](https://github.com/pyobs/pyobs-core/blob/develop/specs/plans/pyobs-pipeline.md)
 in pyobs-core for the full design.
 
+![Dashboard showing site cards with last period, next trigger, and input/output status, plus a table of recent reduction periods](docs/source/_static/screenshots/dashboard.jpg)
+
 ## Documentation
 
 Full installation (Docker Compose, including the `.env` `$`-escaping gotcha and reverse-proxy
