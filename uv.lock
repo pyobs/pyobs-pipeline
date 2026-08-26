@@ -2268,7 +2268,7 @@ wheels = [
 
 [[package]]
 name = "pyobs-core"
-version = "2.0.0.dev70"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -2298,9 +2298,9 @@ dependencies = [
     { name = "tenacity" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/6d/68c2f64b310e09688379c9fa3c454800d84f66ed0e286754980432955fe6/pyobs_core-2.0.0.dev70.tar.gz", hash = "sha256:56c7226b45ba9c480bed7f1b64bd73062f458f280ebe2f151c148ee921861d9a", size = 353777, upload-time = "2026-08-10T10:14:09.88Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/35/57654254c92f7264454a527abc317742995189ee7d7a2d9c6c5b32c90fc5/pyobs_core-2.0.0.tar.gz", hash = "sha256:87b77406f907a9fecb4630a45c002e354134e3c8b11a51e436289489bbb18fe6", size = 374158, upload-time = "2026-08-26T11:44:08.181Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/99/230af0af39e6f5e7da88476986a21ef8dd81382a152a26c82996024f5866/pyobs_core-2.0.0.dev70-py3-none-any.whl", hash = "sha256:061eb2b904298c64d79e2c860c47cdce7f6856eee58db16476138b2f6a55da28", size = 576026, upload-time = "2026-08-10T10:14:08.216Z" },
+    { url = "https://files.pythonhosted.org/packages/35/11/e8af2e0f099a16808ef1f42d398af73bc6c3935501f08a83f6628503e679/pyobs_core-2.0.0-py3-none-any.whl", hash = "sha256:3e97cc12d653978c3d963d41b984702a3169914776ef970d0fa21619d5cb3df6", size = 596861, upload-time = "2026-08-26T11:44:06.642Z" },
 ]
 
 [package.optional-dependencies]
@@ -2321,7 +2321,7 @@ full = [
 
 [[package]]
 name = "pyobs-pipeline"
-version = "2.0.0.dev5"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "astroplan" },
@@ -2345,7 +2345,7 @@ requires-dist = [
     { name = "celery", specifier = ">=5.4" },
     { name = "django", specifier = ">=5.2" },
     { name = "gunicorn", specifier = ">=23.0" },
-    { name = "pyobs-core", extras = ["full"], specifier = ">=2.0.0.dev70" },
+    { name = "pyobs-core", extras = ["full"], specifier = ">=2.0.0" },
     { name = "redis", specifier = ">=5.2" },
     { name = "whitenoise", specifier = ">=6.8" },
 ]
