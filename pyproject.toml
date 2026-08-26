@@ -13,7 +13,7 @@ dependencies = [
     "celery>=5.4",
     "redis>=5.2",
     "astroplan>=0.10",
-    "pyobs-core[full]>=2.0.0.dev70",
+    "pyobs-core[full]>=2.0.0",
 ]
 
 # For local tandem development against an in-progress pyobs-core change, temporarily add:
