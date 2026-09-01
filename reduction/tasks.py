@@ -140,6 +140,10 @@ class _ProgressCollector:
                     "binning": event.binning,
                     "filter": event.filter_name,
                     "filename": event.filename,
+                    # Rounded once here, at the single point that writes this dict, so the
+                    # server-rendered template and the JS poller (period_detail.html) can't
+                    # disagree on a half-second boundary by using different rounding rules.
+                    "exptime": None if event.exptime is None else round(event.exptime),
                 }
             )
         elif isinstance(event, ScienceFrameProcessed):
