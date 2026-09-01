@@ -258,10 +258,12 @@ class FlusherTests(TransactionTestCase):
     def test_on_progress_accumulates_calibs_and_frames(self):
         _handler, progress, _flusher = self._make_flusher_pair()
         progress.on_progress(MasterCalibCreated(ImageType.BIAS, "cam1", "1x1", None, "bias.fits"))
-        progress.on_progress(MasterCalibCreated(ImageType.DARK, "cam1", "1x1", None, "dark.fits"))
+        progress.on_progress(MasterCalibCreated(ImageType.DARK, "cam1", "1x1", None, "dark.fits", exptime=600.0))
         progress.on_progress(ScienceFrameProcessed(1, 3, "obj0.fits", "ok"))
 
         self.assertEqual(len(progress.calibs), 2)
+        self.assertIsNone(progress.calibs[0]["exptime"])
+        self.assertEqual(progress.calibs[1]["exptime"], 600.0)
         self.assertEqual(
             progress.frames,
             {"total": 3, "items": [{"index": 1, "filename": "obj0.fits", "status": "ok", "error": None}]},

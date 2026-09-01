@@ -140,6 +140,7 @@ class _ProgressCollector:
                     "binning": event.binning,
                     "filter": event.filter_name,
                     "filename": event.filename,
+                    "exptime": event.exptime,
                 }
             )
         elif isinstance(event, ScienceFrameProcessed):
