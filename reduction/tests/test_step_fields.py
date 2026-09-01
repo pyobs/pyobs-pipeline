@@ -64,3 +64,15 @@ class GetStepFieldsTests(SimpleTestCase):
         fields = [f for f in get_step_fields("pyobs.images.processors.astrometry.AstrometryDotNet") if f["name"] == "on_error"]
         self.assertEqual(len(fields), 1)
         self.assertEqual(fields[0]["type"], "choices")
+
+    def test_dark_master_scaling_fields_are_introspected(self):
+        """Calibration's per-exptime dark-master params (pyobs-core #831/#832) should
+        appear via plain signature introspection, with pyobs-core's own defaults --
+        no _CHOICE_FIELDS/_DEFAULT_OVERRIDES entry needed for any of them."""
+        fields = {f["name"]: f for f in get_step_fields("pyobs.images.processors.calibration.Calibration")}
+        self.assertEqual(fields["dark_exptime_tolerance"]["type"], "number")
+        self.assertEqual(fields["dark_exptime_tolerance"]["default"], 0.01)
+        self.assertEqual(fields["dark_scale_exptime"]["type"], "number")
+        self.assertEqual(fields["dark_scale_exptime"]["default"], 600.0)
+        self.assertEqual(fields["allow_unmatched_dark_scale"]["type"], "boolean")
+        self.assertEqual(fields["allow_unmatched_dark_scale"]["default"], False)
