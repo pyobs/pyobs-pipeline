@@ -84,7 +84,7 @@
     <div class="small text-muted mb-1">Master calibrations created</div>
     <ul id="calib-list" class="list-unstyled small mb-3" style="max-height:220px;overflow-y:auto">
       {% for calib in period.progress.calibs %}
-      <li>{{ calib.image_type }} &middot; {{ calib.instrument }} {{ calib.binning }}{% if calib.filter %} {{ calib.filter }}{% endif %} &mdash; <code>{{ calib.filename }}</code></li>
+      <li>{{ calib.image_type }}{% if calib.exptime %} {{ calib.exptime }}s{% endif %} &middot; {{ calib.instrument }} {{ calib.binning }}{% if calib.filter %} {{ calib.filter }}{% endif %} &mdash; <code>{{ calib.filename }}</code></li>
       {% empty %}
       <li class="text-muted">(none yet)</li>
       {% endfor %}
@@ -145,7 +145,8 @@
     for (const c of calibs) {
       const li = document.createElement("li");
       const filter = c.filter ? ` ${c.filter}` : "";
-      li.innerHTML = `${c.image_type} &middot; ${c.instrument} ${c.binning}${filter} &mdash; <code>${c.filename}</code>`;
+      const exptime = c.exptime ? ` ${c.exptime}s` : "";
+      li.innerHTML = `${c.image_type}${exptime} &middot; ${c.instrument} ${c.binning}${filter} &mdash; <code>${c.filename}</code>`;
       calibList.appendChild(li);
     }
   }

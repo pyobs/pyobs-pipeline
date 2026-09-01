@@ -117,5 +117,5 @@ class PipelineForm(forms.ModelForm):
             "period_config": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4}),
         }
         help_texts = {
-            "period_config": "kwargs for the top-level reduction object, e.g. min_flats, filenames_calib, create_calibs, calib_science",
+            "period_config": "kwargs for the top-level reduction object, e.g. min_flats, filenames_calib, create_calibs, calib_science, dark_exptime_tolerance",
         }
