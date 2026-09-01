@@ -86,9 +86,11 @@ rather than comparing calendar-date labels directly, because a label only change
 reference crossing (e.g. sunset for a sunrise-triggered site), not at the trigger instant itself —
 comparing labels alone would miss a same-day trigger for several hours after it fires.
 
-**pyobs-core dependency**: pinned to a git commit (`[tool.uv.sources]` in `pyproject.toml`), not
-PyPI, since features this app depends on (the `Night`→`Reduction` rename, archive auto-propagation)
-haven't shipped in a pyobs-core release yet. Bump the pinned `rev` when picking up a relevant
-upstream fix. For local tandem development against an in-progress pyobs-core change, temporarily
-point the source at `{ path = "../pyobs-core", editable = true }` instead of the git pin — don't
-commit that swap.
+**pyobs-core dependency**: a plain PyPI lower-bound (`pyobs-core[full]>=2.2.0` in `pyproject.toml`)
+— all features this app currently depends on have shipped in a pyobs-core release. Bump the floor
+when picking up a relevant upstream fix, and re-run `uv lock` (a brand-new release can lag PyPI's
+index by a few minutes; `uv lock --refresh-package pyobs-core` forces a re-check rather than using
+a stale cached "not found"). For local tandem development against an in-progress, unreleased
+pyobs-core change, temporarily add a `[tool.uv.sources]` override pointing at
+`{ path = "../pyobs-core", editable = true }` instead of the version bound — don't commit that
+swap.
