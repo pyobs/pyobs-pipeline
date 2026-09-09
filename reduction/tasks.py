@@ -182,8 +182,14 @@ def reduce_period(self, site_id: int, period_id: int) -> None:
         reduction = create_object(config, progress_callback=progress.on_progress)
         # siteid is the archive's own site code (e.g. "monets"), which isn't always the
         # same as the display name used in URLs/UI -- falls back to name if unset.
-        asyncio.run(reduction(period.site.siteid or period.site.name, period.date.isoformat()))
-        period.status = "COMPLETED"
+        result = asyncio.run(reduction(period.site.siteid or period.site.name, period.date.isoformat()))
+        # Reduction never aborts the run on an individual frame/master-calib failure -- it
+        # only reports them via the progress callback and the returned ReductionResult -- so
+        # a run where everything failed would otherwise look identical to a clean one here.
+        if result.frames_failed or result.calibs_failed:
+            period.status = "COMPLETED_WITH_ERRORS"
+        else:
+            period.status = "COMPLETED"
     except Exception:
         period.status = "FAILED"
         handler.lines.append(traceback.format_exc())

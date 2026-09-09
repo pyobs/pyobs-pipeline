@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 from django.test import TestCase, TransactionTestCase
 
 from pyobs.utils.enums import ImageType
-from pyobs.utils.pipeline import MasterCalibCreated, ScienceFrameProcessed
+from pyobs.utils.pipeline import MasterCalibCreated, ReductionResult, ScienceFrameProcessed
 from reduction.models import Pipeline, PipelineStep, ReductionPeriod, Site, SitePipeline
 from reduction.tasks import _Flusher, _LogCollector, _ProgressCollector, build_reduction_config, reduce_period
 
@@ -108,12 +108,34 @@ class ReducePeriodTaskTests(TestCase):
 
     @patch("reduction.tasks.create_object")
     def test_success_marks_completed(self, mock_create_object):
-        mock_create_object.return_value = AsyncMock()
+        mock_create_object.return_value = AsyncMock(
+            return_value=ReductionResult(frames_calibrated=2, frames_failed=0, calibs_failed=0)
+        )
         reduce_period(self.site.id, self.period.id)
         self.period.refresh_from_db()
         self.assertEqual(self.period.status, "COMPLETED")
         self.assertIsNotNone(self.period.started_at)
         self.assertIsNotNone(self.period.finished_at)
+
+    @patch("reduction.tasks.create_object")
+    def test_failed_frames_mark_completed_with_errors(self, mock_create_object):
+        # Reduction never raises for an individual frame failure -- it only reports it via
+        # the returned ReductionResult -- so this must not look like a plain "COMPLETED" run.
+        mock_create_object.return_value = AsyncMock(
+            return_value=ReductionResult(frames_calibrated=1, frames_failed=1, calibs_failed=0)
+        )
+        reduce_period(self.site.id, self.period.id)
+        self.period.refresh_from_db()
+        self.assertEqual(self.period.status, "COMPLETED_WITH_ERRORS")
+
+    @patch("reduction.tasks.create_object")
+    def test_failed_master_calib_marks_completed_with_errors(self, mock_create_object):
+        mock_create_object.return_value = AsyncMock(
+            return_value=ReductionResult(frames_calibrated=1, frames_failed=0, calibs_failed=1)
+        )
+        reduce_period(self.site.id, self.period.id)
+        self.period.refresh_from_db()
+        self.assertEqual(self.period.status, "COMPLETED_WITH_ERRORS")
 
     @patch("reduction.tasks.create_object")
     def test_calls_reduction_with_siteid_not_display_name(self, mock_create_object):
@@ -162,6 +184,7 @@ class ReducePeriodTaskTests(TestCase):
             callback(MasterCalibCreated(ImageType.BIAS, "cam1", "1x1", None, "bias.fits"))
             callback(ScienceFrameProcessed(1, 2, "obj0.fits", "ok"))
             callback(ScienceFrameProcessed(2, 2, "obj1.fits", "error", "boom"))
+            return ReductionResult(frames_calibrated=1, frames_failed=1, calibs_failed=0)
 
         mock_create_object.return_value = AsyncMock(side_effect=fake_call)
         reduce_period(self.site.id, self.period.id)
@@ -291,6 +314,7 @@ class FlusherTests(TransactionTestCase):
             logging.getLogger("reduction.tests").warning("mid-run log line")
             callback = mock_create_object.call_args.kwargs["progress_callback"]
             callback(ScienceFrameProcessed(1, 1, "obj0.fits", "ok"))
+            return ReductionResult(frames_calibrated=1, frames_failed=0, calibs_failed=0)
 
         mock_create_object.return_value = AsyncMock(side_effect=fake_call)
 
