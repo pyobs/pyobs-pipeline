@@ -93,13 +93,17 @@ class ReductionPeriod(models.Model):
         ("QUEUED", "Queued"),
         ("RUNNING", "Running"),
         ("COMPLETED", "Completed"),
+        # the task ran to completion (no unhandled exception), but Reduction's returned
+        # ReductionResult counts at least one failed science frame or master calib -- distinct
+        # from COMPLETED so a run where everything silently errored out doesn't read as clean
+        ("COMPLETED_WITH_ERRORS", "Completed with errors"),
         ("FAILED", "Failed"),
         ("CANCELLED", "Cancelled"),  # manually stopped or reset
     ]
 
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name="periods")
     date = models.DateField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="PENDING")
+    status = models.CharField(max_length=22, choices=STATUS_CHOICES, default="PENDING")
     logs = models.TextField(blank=True)
     # {"calibs": [{"image_type", "instrument", "binning", "filter", "filename", "exptime"}, ...],
     #  "frames": {"total": int, "items": [{"index", "filename", "status", "error"}, ...]}}
