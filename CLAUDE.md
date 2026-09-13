@@ -19,7 +19,7 @@ Single Django app named `reduction` inside the project `pyobs_pipeline`.
 uv sync                                              # install deps
 uv run python manage.py migrate                      # apply migrations
 uv run python manage.py runserver                     # dev server
-uv run python manage.py test reduction                 # full test suite
+uv run python manage.py test reduction pyobs_pipeline.authentication  # full test suite
 uv run python manage.py test reduction.tests.test_views # one test module
 uv run python manage.py test reduction.tests.test_views.PeriodViewTests.test_start_on_enabled_site  # one test
 

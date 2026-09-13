@@ -26,6 +26,29 @@ ALLOWED_HOSTS = ["your-hostname-or-ip"]
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD_HASH = ""
 
+# Keycloak login (optional addon on top of the admin/password login above, not a replacement --
+# leave SERVER_URL unset/empty to disable it entirely; the login page won't show the button
+# either).
+# PYOBS_AUTH = {
+#     "SERVER_URL": "https://keycloak.example.org",
+#     "REALM": "pyobs",
+#     "CLIENT_ID": "pipeline",
+#     "CLIENT_SECRET": "",
+#     "REDIRECT_URI": "https://your.domain.com/accounts/keycloak/callback/",
+#     "POST_LOGOUT_REDIRECT_URI": "https://your.domain.com/",
+#     # Optional one-click IdP login: IDP_HINT is passed to Keycloak as kc_idp_hint (skips its
+#     # login/IdP-selection page, going straight to that identity provider, e.g. GWDG SSO);
+#     # IDP_LABEL is the button label on the login page. Leave both unset for the plain
+#     # single "Log in with Keycloak" button.
+#     "IDP_HINT": "gwdg",
+#     "IDP_LABEL": "GWDG",
+#     "USER_RESOLVER": "pyobs_pipeline.authentication.keycloak.resolve_user",
+#     # Only members of this Keycloak group are authorized to use pipeline -- create it (and
+#     # add people to it) in the Keycloak admin console before anyone logs in.
+#     "REQUIRED_GROUPS": ["/pyobs-pipeline"],
+#     "ENFORCE_LOCAL_ACTIVE": False,
+# }
+
 # Celery broker — Redis, matching the current pipeline's setup
 CELERY_BROKER_URL = "redis://localhost:6379/0"
 

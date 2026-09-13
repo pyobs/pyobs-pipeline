@@ -25,6 +25,20 @@ def pipeline_version(request):
     return {"pipeline_version": _pipeline_version()}
 
 
+def keycloak_login(request):
+    # keycloak_login_enabled gates the login page's Keycloak button(s) - SERVER_URL unset means
+    # Keycloak is disabled entirely (see PYOBS_AUTH in settings.py). The template additionally
+    # gates the one-click-IdP button on keycloak_idp_hint, so a hint without SERVER_URL degrades
+    # to no buttons rather than a dead link. Mirrors pyobs-web-admin's
+    # modules/context_processors.py.
+    pyobs_auth_settings = getattr(settings, "PYOBS_AUTH", {})
+    return {
+        "keycloak_login_enabled": bool(pyobs_auth_settings.get("SERVER_URL")),
+        "keycloak_idp_hint": pyobs_auth_settings.get("IDP_HINT", ""),
+        "keycloak_idp_label": pyobs_auth_settings.get("IDP_LABEL", ""),
+    }
+
+
 def pyobs_logo(request):
     # Deployments can point these at their own logo via settings/env; default to the
     # bundled pyobs logo (reduction/static/img/pyobs-logo-{light,dark}.gif). Two

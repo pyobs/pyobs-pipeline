@@ -1,6 +1,6 @@
 [project]
 name = "pyobs-pipeline"
-version = "2.1.1"
+version = "2.2.0"
 description = "Web-based monitoring and configuration for pyobs data reduction pipelines"
 authors = [
     { name = "Tim-Oliver Husser", email = "thusser@uni-goettingen.de" },
@@ -14,6 +14,7 @@ dependencies = [
     "redis>=5.2",
     "astroplan>=0.10",
     "pyobs-core[full]>=2.2.0",
+    "pyobs-auth>=2.1.0",
 ]
 
 # For local tandem development against an in-progress pyobs-core change, temporarily add:
