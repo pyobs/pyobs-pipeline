@@ -2,7 +2,10 @@ import json
 import os
 
 from django.conf import settings
+from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.models import User
 from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -28,6 +31,23 @@ def login_view(request):
         ):
             request.session["authenticated"] = True
             request.session["username"] = username
+            # Also a real django.contrib.auth login, so the same shared credential works
+            # anywhere request.user is checked (e.g. the Keycloak session-refresh middleware's
+            # AuthenticationMiddleware dependency), not just via the session["authenticated"]
+            # flag. The matching superuser User is normally already synced by
+            # pyobs_pipeline.authentication.admin_sync (post_migrate signal, same mechanism as
+            # web-admin/archive/portal) - get_or_create here is just a safety net for a fresh
+            # install that hasn't run `migrate` since ADMIN_PASSWORD_HASH was set.
+            admin_user, _ = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    "is_active": True,
+                    "is_staff": True,
+                    "is_superuser": True,
+                    "password": settings.ADMIN_PASSWORD_HASH,
+                },
+            )
+            auth_login(request, admin_user, backend="django.contrib.auth.backends.ModelBackend")
             return redirect(request.POST.get("next") or "/")
         error = True
     return render(
@@ -39,7 +59,9 @@ def login_view(request):
 
 def logout_view(request):
     if request.method == "POST":
-        request.session.flush()
+        # auth_logout() flushes the session itself (clearing session["authenticated"] along
+        # with request.user) - no separate request.session.flush() needed.
+        auth_logout(request)
     return redirect("/login/")
 
 

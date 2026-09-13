@@ -11,6 +11,11 @@ ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "django.contrib.sessions",
+    "pyobs_auth",
+    "pyobs_pipeline.authentication",
     "reduction",
 ]
 
@@ -18,6 +23,11 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # after AuthenticationMiddleware (needs request.user) - re-checks a Keycloak-backed session's
+    # authorization once its access token expires, instead of only at next login. See pyobs-auth's
+    # docs/source/configuration.rst and pyobs-core's specs/design/shared-authz-keycloak.md.
+    "pyobs_auth.middleware.KeycloakSessionRefreshMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -34,8 +44,10 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
                 "reduction.context_processors.pipeline_version",
                 "reduction.context_processors.pyobs_logo",
+                "reduction.context_processors.keycloak_login",
             ],
         },
     },
@@ -58,8 +70,13 @@ DATABASES = {
     }
 }
 
-# Sessions stored in signed cookies — no session table needed
-SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+# DB-backed sessions (same sqlite file/WAL setup as above) rather than signed cookies -
+# pyobs-auth's Keycloak login stores a refresh token in the session so
+# KeycloakSessionRefreshMiddleware can silently re-authorize before the access token expires;
+# a cookie-backed session can't hold that (it's readable, if not writable, by the browser) and
+# pyobs-auth silently skips storing it there, degrading revocation to "next login only". Matches
+# pyobs-web-admin/pyobs-portal, which are both db-backed for the same reason.
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -79,8 +96,37 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Single-user credentials — set ADMIN_PASSWORD_HASH in local_settings.py:
 #   uv run python -c "from django.contrib.auth.hashers import make_password; print(make_password('yourpassword'))"
+# Break-glass fallback once Keycloak (below) is configured — kept working rather than removed,
+# since it's the only way in if Keycloak itself is unreachable.
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD_HASH = ""
+
+# Keycloak login (optional addon on top of the shared admin/password login above, not a
+# replacement - leave SERVER_URL unset to disable it entirely; the login page won't show the
+# button either). Authorization is the REQUIRED_GROUPS claims gate below (Keycloak group
+# membership) - see pyobs-core's specs/design/shared-authz-keycloak.md and this repo's
+# specs/plans/2026-09-13-keycloak-login.md.
+PYOBS_AUTH = {
+    "SERVER_URL": "",
+    "REALM": "pyobs",
+    "CLIENT_ID": "pipeline",
+    "CLIENT_SECRET": "",
+    "REDIRECT_URI": "",
+    "POST_LOGOUT_REDIRECT_URI": "",
+    # Optional one-click IdP login: IDP_HINT is passed to Keycloak as kc_idp_hint (skips its
+    # login/IdP-selection page, going straight to that identity provider, e.g. GWDG SSO);
+    # IDP_LABEL is the button label on the login page. Both are deployment-specific.
+    "IDP_HINT": "",
+    "IDP_LABEL": "",
+    "USER_RESOLVER": "pyobs_pipeline.authentication.keycloak.resolve_user",
+    # Membership in this Keycloak group is what authorizes a user to use pipeline at all - no
+    # per-action (start/stop/reset) role on top of it, matching today's behavior where any
+    # logged-in user can do everything. Empty disables the gate entirely.
+    "REQUIRED_GROUPS": ["/pyobs-pipeline"],
+    # No local activation gate to layer on top of REQUIRED_GROUPS - unlike web-admin, pipeline
+    # has no Django-admin-backed activation UI, so this stays False (the default).
+    "ENFORCE_LOCAL_ACTIVE": False,
+}
 
 # Celery / Redis
 CELERY_BROKER_URL = "redis://localhost:6379/0"
@@ -100,6 +146,19 @@ if os.environ.get("ALLOWED_HOSTS"):
     ALLOWED_HOSTS = os.environ["ALLOWED_HOSTS"].split(",")
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", ADMIN_USERNAME)
 ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", ADMIN_PASSWORD_HASH)
+PYOBS_AUTH["SERVER_URL"] = os.environ.get("KEYCLOAK_SERVER_URL", PYOBS_AUTH["SERVER_URL"])
+PYOBS_AUTH["CLIENT_ID"] = os.environ.get("KEYCLOAK_CLIENT_ID", PYOBS_AUTH["CLIENT_ID"])
+PYOBS_AUTH["CLIENT_SECRET"] = os.environ.get("KEYCLOAK_CLIENT_SECRET", PYOBS_AUTH["CLIENT_SECRET"])
+PYOBS_AUTH["REDIRECT_URI"] = os.environ.get("KEYCLOAK_REDIRECT_URI", PYOBS_AUTH["REDIRECT_URI"])
+PYOBS_AUTH["POST_LOGOUT_REDIRECT_URI"] = os.environ.get(
+    "KEYCLOAK_POST_LOGOUT_REDIRECT_URI", PYOBS_AUTH["POST_LOGOUT_REDIRECT_URI"]
+)
+PYOBS_AUTH["IDP_HINT"] = os.environ.get("KEYCLOAK_IDP_HINT", PYOBS_AUTH["IDP_HINT"])
+PYOBS_AUTH["IDP_LABEL"] = os.environ.get("KEYCLOAK_IDP_LABEL", PYOBS_AUTH["IDP_LABEL"])
+if os.environ.get("KEYCLOAK_REQUIRED_GROUPS"):
+    PYOBS_AUTH["REQUIRED_GROUPS"] = [
+        group.strip() for group in os.environ["KEYCLOAK_REQUIRED_GROUPS"].split(",") if group.strip()
+    ]
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", CELERY_BROKER_URL)
 MAX_BACKFILL_DAYS = int(os.environ.get("MAX_BACKFILL_DAYS", MAX_BACKFILL_DAYS))
 
