@@ -2362,7 +2362,7 @@ full = [
 
 [[package]]
 name = "pyobs-pipeline"
-version = "2.2.2"
+version = "2.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "astroplan" },
