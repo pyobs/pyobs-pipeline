@@ -10,8 +10,12 @@ session-based Django app with a single hardcoded admin/password account sitting 
 Keycloak, the same shape pyobs-pipeline is in today. Archive/portal are DRF APIs with
 `KeycloakAuthentication`; not relevant here.
 
-Status: **code implemented (2026-09-13), not deployed**. Section 0 (Keycloak realm/client setup)
-and the actual `migrate`/release/deploy steps are still open — this is application code only.
+Status: **implemented, released, and deployed (2026-09-13)**. Shipped in v2.2.0
+(`5171b8e`/`2c01f0b`); a template bug found live in prod (multi-line `{# #}` comment leaking into
+rendered HTML — Django's inline comment tag only strips single-line content) was fixed same-day in
+v2.2.1 (`aebcf5a`/`2c4a1a6`). Deployed and verified live at MONET
+(`pipeline.monet.uni-goettingen.de`) — GWDG one-click login and local-Keycloak-account fallback
+both confirmed working end to end, `thusser` added to `/pyobs-pipeline`. Issue #17 closed.
 
 Repos: pyobs-pipeline (this plan doesn't touch pyobs-auth or any other repo — no new library
 work, just consuming what already exists).
@@ -65,18 +69,21 @@ before starting section 2 below.
 
 ## 0. Keycloak admin/deployment config (not pyobs code)
 
-- [ ] Create realm group `/pyobs-pipeline` (mirrors `/pyobs-archive`, `/pyobs-portal`,
-      `/pyobs-web-admin`).
-- [ ] Register a new Keycloak client `pipeline` in the shared `pyobs` realm (confidential client,
-      like `web-admin`/`portal`/`archive`).
-- [ ] Set the client's valid redirect URI to `<pipeline-deployment>/accounts/keycloak/callback/`
-      and post-logout redirect URI to `<pipeline-deployment>/`, per deployment (MONET, IAG-VT,
-      etc. each need their own, same as today's per-deployment `CSRF_TRUSTED_ORIGINS`).
-- [ ] Decide per deployment whether to set `IDP_HINT`/`IDP_LABEL` (e.g. GWDG SSO one-click login,
-      same optional feature web-admin has).
-- [ ] Assign initial users to `/pyobs-pipeline` before anyone tries to log in with it (assigning
-      the group is what authorizes them — see shared-authz-keycloak.md's "before first login"
-      property).
+Done for MONET (2026-09-13), via `central/auth/create_client.sh` on `mc`
+(`monet.uni-goettingen.de`) — see `pyobs-monet`'s own
+`specs/topology/keycloak-service-topology.md` for the fleet-wide topology this fits into. Other
+deployments (IAG-VT, etc.) repeat this section per-site when they get a pipeline instance.
+
+- [x] Create realm group `/pyobs-pipeline` (mirrors `/pyobs-archive`; unlike `/pyobs-portal-*`/
+      `/pyobs-web-admin-*`, no site suffix needed — pipeline is deployed centrally, one instance
+      fleet-wide, same shape as archive, not per-site).
+- [x] Register a new Keycloak client `pipeline` in the shared `pyobs` realm (confidential client,
+      audience mapper + `groups` default scope wired by `create_client.sh`).
+- [x] Set the client's redirect URI to
+      `https://pipeline.monet.uni-goettingen.de/accounts/keycloak/callback/` and post-logout
+      redirect URI to `https://pipeline.monet.uni-goettingen.de/`.
+- [x] Set `IDP_HINT=gwdg`/`IDP_LABEL=GWDG` for the one-click GWDG login button, matching archive.
+- [x] Assigned `thusser` to `/pyobs-pipeline`; confirmed via `kcadm get users/.../groups`.
 
 ## 1. Package + settings
 
