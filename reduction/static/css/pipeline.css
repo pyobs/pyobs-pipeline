@@ -1,0 +1,65 @@
+/* Pipeline's fleet identity: red, shared by the app badge and UI. */
+:root,
+[data-bs-theme="light"] {
+  --bs-primary: #dc3545;
+  --bs-primary-rgb: 220, 53, 69;
+  --bs-primary-text-emphasis: #58151c;
+  --bs-primary-bg-subtle: #f8d7da;
+  --bs-primary-border-subtle: #f1aeb5;
+  --bs-link-color: #b02a37;
+  --bs-link-color-rgb: 176, 42, 55;
+  --bs-link-hover-color: #842029;
+  --bs-link-hover-color-rgb: 132, 32, 41;
+  --bs-focus-ring-color: rgba(220, 53, 69, 0.25);
+  --pyobs-accent-bg: #dc354520;
+  --pyobs-accent-text: #b02a37;
+}
+
+[data-bs-theme="dark"] {
+  --bs-primary: #dc3545;
+  --bs-primary-rgb: 220, 53, 69;
+  --bs-primary-text-emphasis: #ea868f;
+  --bs-primary-bg-subtle: #2c0b0e;
+  --bs-primary-border-subtle: #842029;
+  --bs-link-color: #ea868f;
+  --bs-link-color-rgb: 234, 134, 143;
+  --bs-link-hover-color: #f1aeb5;
+  --bs-link-hover-color-rgb: 241, 174, 181;
+  --bs-focus-ring-color: rgba(220, 53, 69, 0.25);
+  --pyobs-accent-bg: #dc354520;
+  --pyobs-accent-text: #ea868f;
+}
+
+/* Bootstrap's compiled component colours need their own overrides. */
+.btn-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: #dc3545;
+  --bs-btn-border-color: #dc3545;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #bb2d3b;
+  --bs-btn-hover-border-color: #b02a37;
+  --bs-btn-focus-shadow-rgb: 225, 83, 97;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #b02a37;
+  --bs-btn-active-border-color: #a52834;
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: #dc3545;
+  --bs-btn-disabled-border-color: #dc3545;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: #ea868f;
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.form-check-input:checked,
+.form-check-input[type="checkbox"]:indeterminate {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.progress {
+  --bs-progress-bar-bg: var(--bs-primary);
+}
