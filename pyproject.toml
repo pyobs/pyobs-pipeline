@@ -15,7 +15,7 @@ dependencies = [
     "celery>=5.4",
     "redis>=5.2",
     "astroplan>=0.10",
-    "pyobs-core[full]>=2.2.0",
+    "pyobs-core[full]>=2.18.1",
     "pyobs-auth>=2.1.0",
 ]
 
